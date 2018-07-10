@@ -1,6 +1,5 @@
 from pathlib import Path
 
-from importlib.machinery import SourceFileLoader
 from setuptools import setup
 
 readme = Path(__file__).parent.joinpath('README.md')
