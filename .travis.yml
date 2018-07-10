@@ -1,0 +1,35 @@
+language: python
+
+cache: pip
+
+python:
+- '3.6'
+- '3.7'
+- 'nightly'
+
+matrix:
+  allow_failures:
+  - python: 'nightly'
+
+install:
+- make install
+
+script:
+- make lint
+- make test
+
+env:
+- secure: ""
+
+deploy:
+- provider: pypi
+  user: cph
+  password:
+    secure: ""
+  distributions: sdist bdist_wheel
+  skip_upload_docs: true
+  on:
+    tags: true
+    python:
+      - 3.6
+      - 3.7

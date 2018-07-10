@@ -1,0 +1,12 @@
+{
+  "generator-python3-package": {
+    "packageName": "serving-utils",
+    "packageDesc": "Some utilities for tensorflow serving",
+    "fullName": "Po-Hsien Chu",
+    "pypiUserName": "cph",
+    "githubUserName": "stegben",
+    "email": "cph@yoctol.com",
+    "useTravisCI": "true",
+    "version": "0.1.0"
+  }
+}
