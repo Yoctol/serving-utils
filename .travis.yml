@@ -1,35 +1,27 @@
 language: python
-
 cache: pip
-
 python:
 - '3.6'
 - '3.7'
-- 'nightly'
-
+- nightly
 matrix:
   allow_failures:
-  - python: 'nightly'
-
+  - python: nightly
 install:
 - make install
-
 script:
 - make lint
 - make test
-
-env:
-- secure: ""
-
 deploy:
-- provider: pypi
-  user: cph
-  password:
-    secure: ""
-  distributions: sdist bdist_wheel
-  skip_upload_docs: true
-  on:
-    tags: true
-    python:
+  matrix:
+  - provider: pypi
+    user: stegben
+    password:
+      secure: qwx0cWZIfvlsATvoLqX0TlRY+GWJdg+WYBLbok+8+/kD29e6dlwXX2PM5rPm6ngickDRUFsULnj7MRa9nPlshb9kzmmHFxIow0gHxTQu/eUYTvMID83NBkJIxDGlt9M/KUsVBzuWppBmjoczpbnRM0QB0odgGY1/s+8tWCKkbD9xdUyhzff3qFtyN0D+hdV3M50WFjEEwtlEOajIzt7DL1oVRO9358+ZMz5t37xhDXclDybBkRjf3o55oq9nhWIy19DMXCR7k9EpnHTM5zLNTG98wCocBI7IZ8y6Q4LjDQAhcSFypCPlsRuqoB3YY61ZfVz1U8YpOzczSlq7/HOqwsCA3upg/bA9CQu08/jgAnW+KK2KnUCCcnL3Pk575pgWYJm69ozZpDGCSF0Ro1Z3howw5mX0uMzaOb4XPg64pxT86OE3y9rbsUtqjp4li5A0C3rzYW+XTT/4ZhUsvQ8tUaguZHY9ommNKrX7CoGqwAE3JLcNlxbFmMHj0365UsC2nspeSLYo3F7ruwNeqdf46vTk4uei6u9oSOqXdRG6daZaD3i/TzN860eUDz6+sFenjQ5+laszwPOhZFqxPg+1UXkyQPoEidEcB8wmunhPKi3R+3clhxbU8NduiQQVd/LGP7IxDilPWvFI4Veb1Tn+Kyh7OLXD7ZI2TBv4jcnxaxg=
+    distributions: sdist bdist_wheel
+    skip_upload_docs: true
+    on:
+      tags: true
+      python:
       - 3.6
       - 3.7

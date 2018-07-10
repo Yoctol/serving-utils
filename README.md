@@ -1,6 +1,6 @@
 # serving-utils
 
-[![Build Status](https://travis-ci.org/stegben/serving-utils.svg?branch=master)](https://travis-ci.org/stegben/serving-utils)
+[![Build Status](https://travis-ci.org/Yoctol/serving-utils.svg?branch=master)](https://travis-ci.org/Yoctol/serving-utils)
 
 
 About this project...
