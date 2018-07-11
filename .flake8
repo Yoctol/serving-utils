@@ -16,5 +16,8 @@ exclude =
     # init files
     **/__init__.py
     docs/source/conf.py
+
+    .eggs/*
+    **/*_pb2*
 max_complexity = 10
 statistics = true

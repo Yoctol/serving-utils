@@ -95,3 +95,5 @@ dump.rdb
 
 .vscode/
 .pytest_cache/
+
+**/*_pb2*
