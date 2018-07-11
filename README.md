@@ -1,18 +1,30 @@
 # serving-utils
 
-[![Build Status](https://travis-ci.org/Yoctol/serving-utils.svg?branch=master)](https://travis-ci.org/Yoctol/serving-utils)
+[![Build Status](https://travis-ci.org/Yoctol/serving-utils.svg?branch=master)](https://travis-ci.org/Yoctol/serving-utils) [![PyPI version](https://badge.fury.io/py/serving-utils.svg)](https://badge.fury.io/py/serving-utils)
 
-
-About this project...
+Some python utilities when using tensorflow-serving.
 
 ## Installation
 
-Installation instructions...
+1. Manually install tensorflow CPU or GPU version.
+2. `pip install serving-client`
 
 ## Usage
 
-Usage instructions...
+```python
+from serving_utils import Client
+
+client = Client(addr="localhost:8500")
+client.predict(...)
+
+# or async
+await client.async_predict(...)
+```
 
 ## Test
 
-Testing instructions...
+Run the following commands:
+```
+make lint
+make test
+```

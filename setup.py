@@ -8,6 +8,11 @@ readme = Path(__file__).parent.joinpath('README.md')
 if readme.exists():
     with readme.open() as f:
         long_description = f.read()
+        try:
+            from pypandoc import convert_text
+            long_description = convert_text(long_description, 'rst', format='md')
+        except ImportError:
+            print("warning: pypandoc module not found, could not convert Markdown to RST")
 else:
     long_description = '-'
 
@@ -28,7 +33,7 @@ class BuildPackageProtosDevelop(develop):
 
 setup(
     name='serving-utils',
-    version='0.1.0',
+    version='0.2.0',
     description='Some utilities for tensorflow serving',
     long_description=long_description,
     python_requires='>=3.5',
@@ -41,6 +46,7 @@ setup(
     license='MIT',
     setup_requires=[
         'cython',
+        'pypandoc',
     ],
     install_requires=[
         'grpcio-tools',
