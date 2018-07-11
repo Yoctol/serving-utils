@@ -2,7 +2,6 @@ language: python
 cache: pip
 python:
 - '3.6'
-# - '3.7'
 - nightly
 matrix:
   allow_failures:
@@ -17,11 +16,10 @@ deploy:
   - provider: pypi
     user: stegben
     password:
-      secure: qwx0cWZIfvlsATvoLqX0TlRY+GWJdg+WYBLbok+8+/kD29e6dlwXX2PM5rPm6ngickDRUFsULnj7MRa9nPlshb9kzmmHFxIow0gHxTQu/eUYTvMID83NBkJIxDGlt9M/KUsVBzuWppBmjoczpbnRM0QB0odgGY1/s+8tWCKkbD9xdUyhzff3qFtyN0D+hdV3M50WFjEEwtlEOajIzt7DL1oVRO9358+ZMz5t37xhDXclDybBkRjf3o55oq9nhWIy19DMXCR7k9EpnHTM5zLNTG98wCocBI7IZ8y6Q4LjDQAhcSFypCPlsRuqoB3YY61ZfVz1U8YpOzczSlq7/HOqwsCA3upg/bA9CQu08/jgAnW+KK2KnUCCcnL3Pk575pgWYJm69ozZpDGCSF0Ro1Z3howw5mX0uMzaOb4XPg64pxT86OE3y9rbsUtqjp4li5A0C3rzYW+XTT/4ZhUsvQ8tUaguZHY9ommNKrX7CoGqwAE3JLcNlxbFmMHj0365UsC2nspeSLYo3F7ruwNeqdf46vTk4uei6u9oSOqXdRG6daZaD3i/TzN860eUDz6+sFenjQ5+laszwPOhZFqxPg+1UXkyQPoEidEcB8wmunhPKi3R+3clhxbU8NduiQQVd/LGP7IxDilPWvFI4Veb1Tn+Kyh7OLXD7ZI2TBv4jcnxaxg=
+      secure: AfahAj/jIOruw5jgtVY7oQ1rjtK6I/IlPYXmoJO3vvUWi09i0mfpgM36OMZMaPy4UYwhKSEXFZrb/XTt/5virxb0AwbR3oFDXXqgALUQvOUrx0GmmER2TdXJZ+EAWMpcktzfYo1wk0RTAHg22Gjp54MNPoYTFvHUi18W4N89k03uiLhHQmaaDNDDjeUVkidlAm1rZMqlGPfdQTlHuIuD5UqfD/G1oPUuG83R2jDc7kF2Cr6qgJota7wF1gVMINKyxEuaY1ma7Vyh8q7P2vuUq41JA15p4CdIyJdg0CKqfA0/tydPrseRrodc40le+BlPdUPjuOJpva9Nf3aNYV6+kF+zM+cBTE57rtFYe7/C+aS1oxH1m+EwBpIUOuweSSZp85yPukvNQPEG8ulblDaiz6OjMZvej8QAz/O6hvAkQNAK13inKrjyBkMzuZhS1E1LQivK0EsPtCOI2xJwOBZYEthsBtiz79Pa2g1VOP/MAXw0propgeni++lkvWAfe0S8599O81Kl8ITIKGIZhLkg7MMqBg6X5tMXJYqn1actR4cm/UNxokQ8jsQfsQS4JtUgPo/KpE0S1luUG4JGDYe6jbmZkVsYwvb3gwZvYG3YxXZ/IvG0XScZV6anf6KwUclRDWYbktuXN91K+GL6MXSUTbZ34WHq/Z2MdTYDLPet9Yg=
     distributions: sdist bdist_wheel
     skip_upload_docs: true
     on:
       tags: true
       python:
       - 3.6
-      # - 3.7
