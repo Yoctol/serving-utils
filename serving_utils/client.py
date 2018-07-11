@@ -7,8 +7,7 @@ import grpc
 import numpy as np
 import tensorflow as tf
 
-from .apis import predict_pb2
-from .apis import prediction_service_pb2_grpc
+from .protos import predict_pb2, prediction_service_pb2_grpc
 
 
 class Client:

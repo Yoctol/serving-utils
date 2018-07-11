@@ -20,7 +20,6 @@ syntax = "proto3";
 package tensorflow.serving;
 option cc_enable_arenas = true;
 
-import "serving_utils/protos/get_model_metadata.proto";
 import "serving_utils/protos/predict.proto";
 
 // open source marker; do not remove
@@ -30,8 +29,4 @@ service PredictionService {
 
   // Predict -- provides access to loaded TensorFlow model.
   rpc Predict(PredictRequest) returns (PredictResponse);
-
-  // GetModelMetadata - provides access to metadata for loaded models.
-  rpc GetModelMetadata(GetModelMetadataRequest)
-      returns (GetModelMetadataResponse);
 }
