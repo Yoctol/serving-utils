@@ -2,7 +2,7 @@ language: python
 cache: pip
 python:
 - '3.6'
-- '3.7'
+# - '3.7'
 - nightly
 matrix:
   allow_failures:
@@ -24,4 +24,4 @@ deploy:
       tags: true
       python:
       - 3.6
-      - 3.7
+      # - 3.7

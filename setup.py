@@ -31,7 +31,7 @@ setup(
     version='0.1.0',
     description='Some utilities for tensorflow serving',
     long_description=long_description,
-    python_requires='>=3.6',
+    python_requires='>=3.5',
     packages=[
         'serving_utils',
     ],
