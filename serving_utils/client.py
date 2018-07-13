@@ -68,11 +68,17 @@ class Client:
         self._async_stub = prediction_service_pb2_grpc.PredictionServiceStub(self._async_channel)
 
     @staticmethod
-    def _predict_request(data, output_names=None, model_name=None):
-        if model_name is None:
-            raise ValueError("model_name must be provided.")
+    def _predict_request(
+            data,
+            model_name='default',
+            output_names=None,
+            model_signature_name=None,
+        ):
         req = predict_pb2.PredictRequest()
         req.model_spec.name = model_name
+        if model_signature_name is not None:
+            req.model_spec.signature_name = model_signature_name
+
         for datum in data:
             copy_message(tf.make_tensor_proto(datum['value']), req.inputs[datum['name']])
         if output_names is not None:
@@ -94,11 +100,13 @@ class Client:
             data: List[Mapping[str, np.ndarray]],
             output_names: List[str] = None,
             model_name: str = None,
+            model_signature_name: str = None,
         ):
         request = self._predict_request(
             data=data,
             output_names=output_names,
             model_name=model_name,
+            model_signature_name=model_signature_name,
         )
         response = self._stub.Predict(request)
         return self.parse_predict_response(response)
@@ -108,11 +116,13 @@ class Client:
             data: List[Mapping[str, np.ndarray]],
             output_names: List[str] = None,
             model_name: str = None,
+            model_signature_name: str = None,
         ):
         request = self._predict_request(
             data=data,
             output_names=output_names,
             model_name=model_name,
+            model_signature_name=model_signature_name,
         )
         response = await self._async_stub.Predict(request)
         return self.parse_predict_response(response)
