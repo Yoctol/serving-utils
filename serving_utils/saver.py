@@ -1,11 +1,7 @@
 from typing import Dict
-import logging
-import os
+import pathlib
 
-from mkdir_p import mkdir_p
 import tensorflow as tf
-
-LOGGER = logging.getLogger(__name__)
 
 
 class Saver:
@@ -15,13 +11,11 @@ class Saver:
             session: tf.Session,
             output_dir: str,
             signature_def_map: Dict[str, tf.saved_model.signature_def_utils.predict_signature_def],
-            logger: object = LOGGER,
         ) -> None:
         self.session = session
         self.signature_def_map = signature_def_map
-        self.output_dir = output_dir
-        mkdir_p(self.output_dir)
-        self.logger = logger
+        self.output_dir = pathlib.Path(output_dir)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
 
     def _check_is_version(self, dir_name: str) -> bool:
         try:
@@ -30,23 +24,24 @@ class Saver:
             return False
         return True
 
-    def _get_next_version(self, path: str) -> str:
-        dirs = os.listdir(path)
+    def _get_next_version(
+            self,
+            path: pathlib.PosixPath,
+        ) -> pathlib.PosixPath:
+        candidate_paths = path.glob('**/*')
+        dirs = [x.name for x in candidate_paths if x.is_dir()]
         max_version = -1
         for dir_name in dirs:
             if self._check_is_version(dir_name) and max_version < int(dir_name):
                 max_version = int(dir_name)
-        return os.path.join(path, str(max_version + 1))
+        return path / str(max_version + 1)
 
     def save(
             self,
             legacy_init_op: tf.group = None,
             **kwargs
-        ) -> None:
-        output_version_dir = self._get_next_version(self.output_dir)
-
-        self.logger.info(f"Saving model to {output_version_dir}")
-
+        ) -> str:
+        output_version_dir = str(self._get_next_version(self.output_dir))
         with self.session.graph.as_default():
             builder = tf.saved_model.builder.SavedModelBuilder(
                 export_dir=output_version_dir,
@@ -58,3 +53,4 @@ class Saver:
                 legacy_init_op=legacy_init_op,
             )
         builder.save()
+        return output_version_dir
