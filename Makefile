@@ -12,7 +12,7 @@ lint:
 
 .PHONY: test
 test:
-	pytest .
+	pytest -m "not integration" .
 
 .PHONY: testall
 testall:
@@ -37,6 +37,5 @@ clean:
 	rm -f .coverage
 	rm -f .coverage.*
 	rm -rf build
-	rm -r test-fixtures/
-	make -C docs clean
+	rm -r .fake-models/
 	python setup.py clean

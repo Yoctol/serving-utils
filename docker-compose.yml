@@ -8,3 +8,30 @@ services:
       - MODEL_NAME=test_model
     volumes:
       - ./.fake-models/test_model:/models/test_model
+
+  official_serving_1_7_1:
+    image: tensorflow/serving:1.6.1
+    ports:
+      - "8502:8500"
+    environment:
+      - MODEL_NAME=test_model
+    volumes:
+      - ./.fake-models/test_model:/models/test_model
+
+  official_serving_1_8_0:
+    image: tensorflow/serving:1.8.0
+    ports:
+      - "8503:8500"
+    environment:
+      - MODEL_NAME=test_model
+    volumes:
+      - ./.fake-models/test_model:/models/test_model
+
+  official_serving_1_9_0:
+    image: tensorflow/serving:1.9.0
+    ports:
+      - "8504:8500"
+    environment:
+      - MODEL_NAME=test_model
+    volumes:
+      - ./.fake-models/test_model:/models/test_model
