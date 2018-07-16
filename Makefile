@@ -14,8 +14,16 @@ lint:
 test:
 	pytest .
 
+.PHONY: testall
+testall:
+    python train_for_test.py
+    docker-compose up
+    pytest .
+    docker-compose stop
+    docker-compose rm
+
 .PHONY: all
-all: test lint
+all: install test lint
 
 .PHONY: clean
 clean:

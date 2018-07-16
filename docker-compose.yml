@@ -1,0 +1,9 @@
+version: '3'
+services:
+  mobilenet_v1:
+    build:
+      image: tensorflow/serving:1.6.1
+    ports:
+      - "8501:8500"
+    volumes:
+       - db-data:/var/lib/mysql/data
