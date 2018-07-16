@@ -12,6 +12,7 @@ script:
   - make lint
   - make test
 deploy:
+  before_deploy: apt-get install pandoc
   provider: pypi
   user: stegben
   password:
