@@ -6,11 +6,19 @@ Some python utilities when using tensorflow-serving.
 
 ## Installation
 
+From PYPI:
 1. Manually install tensorflow CPU or GPU version.
 2. `pip install serving-client`
 
+From Github repository:
+1. `git clone git@github.com:Yoctol/serving-utils.git`
+2. `make install`
+3. `pip install -r requirements.txt`
+
+
 ## Usage
 
+1. Client
 ```python
 from serving_utils import Client
 
@@ -20,6 +28,19 @@ client.predict(...)
 # or async
 await client.async_predict(...)
 ```
+
+2. Saver
+```python
+from serving_utils import Saver
+
+saver = Saver(
+    session,
+    output_dir,
+    signature_def_map,
+)
+saver.save(...)
+```
+
 
 ## Test
 
