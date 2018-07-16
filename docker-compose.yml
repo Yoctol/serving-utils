@@ -1,9 +1,10 @@
 version: '3'
 services:
-  mobilenet_v1:
-    build:
-      image: tensorflow/serving:1.6.1
+  official_serving_1_6_1:
+    image: tensorflow/serving:1.6.1
     ports:
       - "8501:8500"
+    environment:
+      - MODEL_NAME=test_model
     volumes:
-       - db-data:/var/lib/mysql/data
+      - ./.fake-models/test_model:/models/test_model

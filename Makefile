@@ -16,14 +16,14 @@ test:
 
 .PHONY: testall
 testall:
-    python train_for_test.py
-    docker-compose up
-    pytest .
-    docker-compose stop
-    docker-compose rm
+	python train_for_test.py
+	docker-compose up -d
+	pytest .
+	docker-compose stop
+	docker-compose rm -f
 
 .PHONY: all
-all: install test lint
+all: install testall lint
 
 .PHONY: clean
 clean:
@@ -37,5 +37,6 @@ clean:
 	rm -f .coverage
 	rm -f .coverage.*
 	rm -rf build
+	rm -r test-fixtures/
 	make -C docs clean
 	python setup.py clean
