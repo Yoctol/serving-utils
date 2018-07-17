@@ -55,3 +55,9 @@ Run the following commands:
 make lint
 make test
 ```
+
+## Dev
+
+```
+make install
+```

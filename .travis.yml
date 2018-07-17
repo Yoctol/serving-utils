@@ -3,6 +3,8 @@ cache: pip
 python:
   - '3.6'
   - nightly
+services:
+  - docker
 matrix:
   allow_failures:
     - python: nightly
@@ -10,9 +12,9 @@ install:
   - make install
 script:
   - make lint
-  - make test
+  - make testall
+before_deploy: apt-get install pandoc
 deploy:
-  before_deploy: apt-get install pandoc
   provider: pypi
   user: stegben
   password:

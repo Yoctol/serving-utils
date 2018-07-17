@@ -12,10 +12,18 @@ lint:
 
 .PHONY: test
 test:
+	pytest -m "not integration" .
+
+.PHONY: testall
+testall:
+	python train_for_test.py
+	docker-compose up -d
 	pytest .
+	docker-compose stop
+	docker-compose rm -f
 
 .PHONY: all
-all: test lint
+all: install testall lint
 
 .PHONY: clean
 clean:
@@ -29,5 +37,5 @@ clean:
 	rm -f .coverage
 	rm -f .coverage.*
 	rm -rf build
-	make -C docs clean
+	rm -r .fake-models/
 	python setup.py clean

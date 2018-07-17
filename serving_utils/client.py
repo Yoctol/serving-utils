@@ -10,6 +10,17 @@ import tensorflow as tf
 from .protos import predict_pb2, prediction_service_pb2_grpc
 
 
+def copy_message(src, dst):
+    """
+    Copy the contents of a src proto message to a destination proto message via string serialization
+    :param src: Source proto
+    :param dst: Destination proto
+    :return:
+    """
+    dst.ParseFromString(src.SerializeToString())
+    return dst
+
+
 class Client:
 
     def __init__(
@@ -63,8 +74,7 @@ class Client:
         req = predict_pb2.PredictRequest()
         req.model_spec.name = model_name
         for datum in data:
-            req.inputs[datum['name']].CopyFrom(
-                tf.contrib.util.make_tensor_proto(datum['value']))
+            copy_message(tf.make_tensor_proto(datum['value']), req.inputs[datum['name']])
         if output_names is not None:
             for output_name in output_names:
                 req.output_filter.append(output_name)
