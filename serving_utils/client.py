@@ -1,10 +1,10 @@
 import asyncio
+from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
-from typing import List, Mapping
+from typing import List
 
 from aiogrpc import Channel
 import grpc
-import numpy as np
 import tensorflow as tf
 
 from .protos import predict_pb2, prediction_service_pb2_grpc
@@ -19,6 +19,9 @@ def copy_message(src, dst):
     """
     dst.ParseFromString(src.SerializeToString())
     return dst
+
+
+PredictInput = namedtuple('PredictInput', ['name', 'value'])
 
 
 class Client:
@@ -68,13 +71,19 @@ class Client:
         self._async_stub = prediction_service_pb2_grpc.PredictionServiceStub(self._async_channel)
 
     @staticmethod
-    def _predict_request(data, output_names=None, model_name=None):
-        if model_name is None:
-            raise ValueError("model_name must be provided.")
+    def _predict_request(
+            data,
+            model_name='default',
+            output_names=None,
+            model_signature_name=None,
+        ):
         req = predict_pb2.PredictRequest()
         req.model_spec.name = model_name
+        if model_signature_name is not None:
+            req.model_spec.signature_name = model_signature_name
+
         for datum in data:
-            copy_message(tf.make_tensor_proto(datum['value']), req.inputs[datum['name']])
+            copy_message(tf.make_tensor_proto(datum.value), req.inputs[datum.name])
         if output_names is not None:
             for output_name in output_names:
                 req.output_filter.append(output_name)
@@ -91,28 +100,32 @@ class Client:
 
     def predict(
             self,
-            data: List[Mapping[str, np.ndarray]],
+            data: List[PredictInput],
             output_names: List[str] = None,
             model_name: str = None,
+            model_signature_name: str = None,
         ):
         request = self._predict_request(
             data=data,
             output_names=output_names,
             model_name=model_name,
+            model_signature_name=model_signature_name,
         )
         response = self._stub.Predict(request)
         return self.parse_predict_response(response)
 
     async def async_predict(
             self,
-            data: List[Mapping[str, np.ndarray]],
+            data: List[PredictInput],
             output_names: List[str] = None,
             model_name: str = None,
+            model_signature_name: str = None,
         ):
         request = self._predict_request(
             data=data,
             output_names=output_names,
             model_name=model_name,
+            model_signature_name=model_signature_name,
         )
         response = await self._async_stub.Predict(request)
         return self.parse_predict_response(response)

@@ -4,7 +4,7 @@ import time
 import pytest
 
 import numpy as np
-from serving_utils import Client
+from serving_utils import Client, PredictInput
 
 
 @pytest.mark.integration
@@ -40,20 +40,18 @@ async def test_client():
         ))
 
     req_data = [
-        {'name': 'a', 'value': np.int16(2)},
-        {'name': 'b', 'value': np.int16(3)},
+        PredictInput(name='a', value=np.int16(2)),
+        PredictInput(name='b', value=np.int16(3)),
     ]
     output_names = ['c']
     model_name = 'test_model'
     expected_output = {'c': 8}  # c = a + 2 * b
     for client in clients:
-        print(client)
         actual_output = client.predict(
             data=req_data,
             output_names=output_names,
             model_name=model_name,
         )
-        print(actual_output)
 
         assert actual_output == expected_output
 
