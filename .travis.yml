@@ -13,7 +13,7 @@ install:
 script:
   - make lint
   - make testall
-before_deploy: apt-get install pandoc
+before_deploy: sudo apt-get install pandoc
 deploy:
   provider: pypi
   user: stegben
