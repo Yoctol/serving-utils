@@ -42,7 +42,7 @@ setup(
     ],
     author='Po-Hsien Chu',
     author_email='cph@yoctol.com',
-    url='https://github.com/samuelcolvin/arq',
+    url='https://github.com/Yoctol/serving-utils',
     license='MIT',
     setup_requires=[
         'cython',
