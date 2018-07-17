@@ -24,7 +24,7 @@ async def test_client():
                 client = Client(
                     addr=f"localhost:{serving_port}",
                 )
-                client.predict(None, output_names='wrong_model')
+                client.predict(None, output_names='wrong_model', model_signature_name='test')
                 break
 
             except Exception:
@@ -51,6 +51,7 @@ async def test_client():
             data=req_data,
             output_names=output_names,
             model_name=model_name,
+            model_signature_name='test',
         )
 
         assert actual_output == expected_output
@@ -59,6 +60,7 @@ async def test_client():
             data=req_data,
             output_names=output_names,
             model_name=model_name,
+            model_signature_name='test',
         )
 
         assert actual_output == expected_output

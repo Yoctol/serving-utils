@@ -13,7 +13,7 @@ with tf.Session(graph=graph) as sess:
         session=sess,
         output_dir='./.fake-models/test_model',
         signature_def_map={
-            'serving_default': tf.saved_model.signature_def_utils.predict_signature_def(
+            'test': tf.saved_model.signature_def_utils.predict_signature_def(
                 inputs={'a': a, 'b': b},
                 outputs={'c': c},
             )
