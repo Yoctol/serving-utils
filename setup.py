@@ -39,6 +39,7 @@ setup(
     python_requires='>=3.5',
     packages=[
         'serving_utils',
+        'serving_utils.protos',
     ],
     author='Po-Hsien Chu',
     author_email='cph@yoctol.com',
