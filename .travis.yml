@@ -8,12 +8,14 @@ services:
 matrix:
   allow_failures:
     - python: nightly
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install pandoc -y
 install:
   - make install
 script:
   - make lint
   - make testall
-before_deploy: sudo apt-get install pandoc
 deploy:
   provider: pypi
   user: stegben
