@@ -8,7 +8,7 @@ Some python utilities when using tensorflow-serving.
 
 From PYPI:
 1. Manually install tensorflow CPU or GPU version.
-2. `pip install serving-client`
+2. `pip install serving-utils`
 
 From Github repository:
 1. `git clone git@github.com:Yoctol/serving-utils.git`
