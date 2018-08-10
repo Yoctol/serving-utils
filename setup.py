@@ -36,7 +36,7 @@ setup(
     version='0.4.3',
     description='Some utilities for tensorflow serving',
     long_description=long_description,
-    python_requires='>=3.5',
+    python_requires='>=3.6',
     packages=[
         'serving_utils',
         'serving_utils.protos',
