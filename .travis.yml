@@ -16,6 +16,9 @@ install:
 script:
   - make lint
   - make testall
+before_deploy:
+  - python setup.py install
+  - rm -rf dist/
 deploy:
   provider: pypi
   user: stegben
