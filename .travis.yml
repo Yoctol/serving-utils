@@ -17,6 +17,7 @@ script:
   - make lint
   - make testall
 before_deploy:
+  - pip install pypandoc
   - python setup.py install
   - rm -rf dist/
 deploy:
@@ -25,7 +26,7 @@ deploy:
   password:
     secure: AfahAj/jIOruw5jgtVY7oQ1rjtK6I/IlPYXmoJO3vvUWi09i0mfpgM36OMZMaPy4UYwhKSEXFZrb/XTt/5virxb0AwbR3oFDXXqgALUQvOUrx0GmmER2TdXJZ+EAWMpcktzfYo1wk0RTAHg22Gjp54MNPoYTFvHUi18W4N89k03uiLhHQmaaDNDDjeUVkidlAm1rZMqlGPfdQTlHuIuD5UqfD/G1oPUuG83R2jDc7kF2Cr6qgJota7wF1gVMINKyxEuaY1ma7Vyh8q7P2vuUq41JA15p4CdIyJdg0CKqfA0/tydPrseRrodc40le+BlPdUPjuOJpva9Nf3aNYV6+kF+zM+cBTE57rtFYe7/C+aS1oxH1m+EwBpIUOuweSSZp85yPukvNQPEG8ulblDaiz6OjMZvej8QAz/O6hvAkQNAK13inKrjyBkMzuZhS1E1LQivK0EsPtCOI2xJwOBZYEthsBtiz79Pa2g1VOP/MAXw0propgeni++lkvWAfe0S8599O81Kl8ITIKGIZhLkg7MMqBg6X5tMXJYqn1actR4cm/UNxokQ8jsQfsQS4JtUgPo/KpE0S1luUG4JGDYe6jbmZkVsYwvb3gwZvYG3YxXZ/IvG0XScZV6anf6KwUclRDWYbktuXN91K+GL6MXSUTbZ34WHq/Z2MdTYDLPet9Yg=
   distributions: sdist bdist_wheel
-  skip_upload_docs: true
+  skip_cleanup: true
   on:
     tags: true
     python: 3.6

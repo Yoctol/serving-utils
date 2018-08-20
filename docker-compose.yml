@@ -10,7 +10,7 @@ services:
       - ./.fake-models/test_model:/models/test_model
 
   official_serving_1_7_1:
-    image: tensorflow/serving:1.6.1
+    image: tensorflow/serving:1.7.1
     ports:
       - "8502:8500"
     environment:
