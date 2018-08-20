@@ -4,6 +4,7 @@ from setuptools import setup
 from setuptools.command.install import install
 from setuptools.command.develop import develop
 
+
 readme = Path(__file__).parent.joinpath('README.md')
 if readme.exists():
     with readme.open() as f:
@@ -18,6 +19,7 @@ else:
 
 
 class BuildPackageProtos(install):
+
     def run(self):
         install.run(self)
         from grpc.tools import command
@@ -25,6 +27,7 @@ class BuildPackageProtos(install):
 
 
 class BuildPackageProtosDevelop(develop):
+
     def run(self):
         develop.run(self)
         from grpc.tools import command
@@ -36,7 +39,7 @@ setup(
     version='0.4.6',
     description='Some utilities for tensorflow serving',
     long_description=long_description,
-    python_requires='>=3.6',
+    python_requires='3.6',
     packages=[
         'serving_utils',
         'serving_utils.protos',
