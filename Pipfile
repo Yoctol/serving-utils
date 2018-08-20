@@ -7,8 +7,10 @@ name = "pypi"
 
 [packages]
 
-tensorflow = ">=1.7"
+tensorflow = "==1.7"
 aiogrpc = ">=1.5"
+numpy = ">=1.14.0"
+grpcio-tools = "*"
 
 
 [dev-packages]
