@@ -17,18 +17,7 @@ From Github repository:
 
 ## Usage
 
-1. Client
-```python
-from serving_utils import Client
-
-client = Client(addr="localhost:8500")
-client.predict(...)
-
-# or async
-await client.async_predict(...)
-```
-
-2. Saver
+1. Saver
 ```python
 import tensorflow as tf
 
@@ -39,14 +28,28 @@ saver = Saver(
     output_dir='/path/to/serving',
     signature_def_map={
         'predict': tf.saved_model.signature_def_utils.predict_signature_def(
-            inputs={'tensor_name': tf.Tensor...},
-            outputs={'tensor_name': tf.Tensor...},
+            inputs={'input': tf.Tensor...},
+            outputs={'output': tf.Tensor...},
         )
     },
 )
 saver.save(...)
 ```
 
+2. Saver
+```python
+from serving_utils import Client, PredictInput
+
+client = Client(addr="localhost:8500")
+client.predict(
+    [PredictInput(name='input', value=np.ones(1, 10))],
+    output_names=['output'],
+    model_signature_name='predict',
+)
+
+# or async
+await client.async_predict(...)
+```
 
 ## Test
 
