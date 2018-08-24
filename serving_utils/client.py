@@ -98,7 +98,7 @@ class Client:
     @staticmethod
     def _predict_request(
             data,
-            model_name='default',
+            model_name,
             output_names=None,
             model_signature_name=None,
         ):
@@ -127,7 +127,7 @@ class Client:
             self,
             data: List[PredictInput],
             output_names: List[str] = None,
-            model_name: str = None,
+            model_name: str = 'default',
             model_signature_name: str = None,
         ):
         request = self._predict_request(
@@ -143,7 +143,7 @@ class Client:
             self,
             data: List[PredictInput],
             output_names: List[str] = None,
-            model_name: str = None,
+            model_name: str = 'default',
             model_signature_name: str = None,
         ):
         request = self._predict_request(
