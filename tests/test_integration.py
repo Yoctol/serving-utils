@@ -4,6 +4,7 @@ import time
 import pytest
 
 import numpy as np
+import grpc
 from serving_utils import Client, PredictInput
 
 
@@ -64,3 +65,18 @@ async def test_client():
         )
 
         assert actual_output == expected_output
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_not_exist_addr():
+    test_serving_ports = [
+        8505,
+        30000,
+    ]
+
+    for serving_port in test_serving_ports:
+        with pytest.raises(grpc._channel._Rendezvous):
+            Client(
+                addr=f"localhost:{serving_port}",
+            )

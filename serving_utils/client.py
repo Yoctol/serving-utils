@@ -1,7 +1,9 @@
+from typing import List
+import time
+
 import asyncio
 from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
-from typing import List
 
 from aiogrpc import Channel
 import grpc
@@ -26,6 +28,9 @@ PredictInput = namedtuple('PredictInput', ['name', 'value'])
 
 class Client:
 
+    CHECK_ADDRESS_HEALTH_TIMES = 4
+    TIMEOUT_SECONDS = 5
+
     def __init__(
             self,
             addr: str,
@@ -46,6 +51,7 @@ class Client:
             standalone_pool_for_streaming: create a new thread pool (with 1 thread)
                 for each streaming method
         """
+        self.addr = addr
         if channel_options is None:
             channel_options = {}
         if pem is None:
@@ -69,6 +75,25 @@ class Client:
 
         self._stub = prediction_service_pb2_grpc.PredictionServiceStub(self._channel)
         self._async_stub = prediction_service_pb2_grpc.PredictionServiceStub(self._async_channel)
+        self._check_address_health()
+
+    def _check_address_health(self):
+        for _ in range(self.CHECK_ADDRESS_HEALTH_TIMES):
+            time.sleep(1)
+            req = predict_pb2.PredictRequest()
+            req.model_spec.name = 'intentionally_missing_model'
+            try:
+                self._stub.Predict(req, self.TIMEOUT_SECONDS)
+            except Exception as e:
+                _code = e._state.code
+                if _code == grpc.StatusCode.UNAVAILABLE:
+                    raise e
+                elif _code == grpc.StatusCode.NOT_FOUND:
+                    break
+                else:
+                    raise Exception(e)
+        else:
+            raise ConnectionError(f"Connection Timeout for addr: {self.addr}")
 
     @staticmethod
     def _predict_request(
