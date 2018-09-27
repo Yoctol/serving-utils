@@ -17,24 +17,15 @@ class Saver:
         self.output_dir = pathlib.Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-    def _check_is_version(self, dir_name: str) -> bool:
-        try:
-            int(dir_name)
-        except ValueError:
-            return False
-        return True
-
     def _get_next_version(
             self,
             path: pathlib.PosixPath,
         ) -> pathlib.PosixPath:
         candidate_paths = path.glob('**/*')
         dirs = [x.name for x in candidate_paths if x.is_dir()]
-        max_version = -1
-        for dir_name in dirs:
-            if self._check_is_version(dir_name) and max_version < int(dir_name):
-                max_version = int(dir_name)
-        return path / str(max_version + 1)
+        versions = [int(dir_name) for dir_name in dirs if dir_name.isdigit()]
+        new_version = max(versions) + 1 if versions else 0
+        return path / str(new_version)
 
     def save(
             self,
