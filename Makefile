@@ -2,25 +2,26 @@
 
 .PHONY: install
 install:
-	pip install -U pip wheel setuptools
-	pip install -r requirements.txt
-	pip install -e .
+	pip install pipenv==v2018.05.18
+	pipenv run pip install -U Cython
+	pipenv install --dev
 
 .PHONY: lint
 lint:
-	flake8
+	pipenv run python -m flake8
 
 .PHONY: test
 test:
-	pytest -m "not integration" .
+	pipenv run pytest -m "not integration" .
 
 .PHONY: testall
 testall:
-	python train_for_test.py
+	pipenv run python train_for_test.py
 	docker-compose up -d
 	pytest .
 	docker-compose stop
 	docker-compose rm -f
+	rm -r .fake-models/
 
 .PHONY: all
 all: install testall lint

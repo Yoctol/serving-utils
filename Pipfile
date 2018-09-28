@@ -1,0 +1,27 @@
+[[source]]
+
+verify_ssl = true
+url = "https://pypi.python.org/simple"
+name = "pypi"
+
+
+[packages]
+
+tensorflow = "==1.7"
+aiogrpc = ">=1.5"
+numpy = ">=1.14.0"
+grpcio-tools = "*"
+
+
+[dev-packages]
+
+pytest = "*"
+pytest-asyncio = "*"
+"flake8" = "*"
+"flake8-config-yoctol" = "==0.0.8"
+ipdb = "*"
+
+
+[requires]
+
+python_version = "3.6"
