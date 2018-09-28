@@ -17,8 +17,8 @@ class Saver:
         self.output_dir = pathlib.Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
+    @staticmethod
     def _get_next_version(
-            self,
             path: pathlib.PosixPath,
         ) -> pathlib.PosixPath:
         candidate_paths = path.glob('**/*')
