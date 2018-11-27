@@ -9,7 +9,7 @@ from aiogrpc import Channel
 import grpc
 import tensorflow as tf
 
-from .protos import predict_pb2, prediction_service_pb2_grpc
+from .protos import predict_pb2, prediction_service_pb2_grpc, list_models_pb2, list_models_pb2_grpc
 
 
 def copy_message(src, dst):
@@ -122,6 +122,11 @@ class Client:
             nd_array = tf.contrib.util.make_ndarray(tensor_proto)
             results[key] = nd_array
         return results
+
+    def list_models(self):
+        stub = list_models_pb2_grpc.ListModelsStub(self._channel)
+        response = stub.ListModels(list_models_pb2.ListModelsRequest())
+        return response.models
 
     def predict(
             self,
