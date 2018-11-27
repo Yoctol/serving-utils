@@ -55,7 +55,7 @@ class SaverTestCase(tf.test.TestCase):
                 ],
             ),
             set(
-                glob(self.model.output_dir + '/*/*') +
+                glob(self.model.output_dir + '/*/*') +  # noqa: W504
                 glob(self.model.output_dir + '/*/*/*'),
             ),
         )
