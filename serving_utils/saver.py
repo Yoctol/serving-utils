@@ -29,7 +29,6 @@ class Saver:
 
     def save(
             self,
-            legacy_init_op: tf.group = None,
             **kwargs
         ) -> str:
         output_version_dir = str(self._get_next_version(self.output_dir))
@@ -41,7 +40,6 @@ class Saver:
                 sess=self.session,
                 tags=[tf.saved_model.tag_constants.SERVING],
                 signature_def_map=self.signature_def_map,
-                legacy_init_op=legacy_init_op,
             )
         builder.save()
         return output_version_dir
