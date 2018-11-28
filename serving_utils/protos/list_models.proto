@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+service ListModels {
+  rpc ListModels (ListModelsRequest) returns (ListModelsResponse) {}
+}
+
+message ListModelsRequest {
+}
+
+message ListModelsResponse {
+  repeated string models = 1;
+}
