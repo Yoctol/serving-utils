@@ -36,7 +36,7 @@ saver = Saver(
 saver.save(...)
 ```
 
-2. Saver
+2. Client
 ```python
 from serving_utils import Client, PredictInput
 
