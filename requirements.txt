@@ -1,4 +1,4 @@
-pytest
+pytest==4.3.0
 flake8
 pytest-asyncio
 tensorflow>=1.7
