@@ -2,9 +2,7 @@
 
 .PHONY: install
 install:
-	pip install -U pip wheel setuptools
-	pip install -r requirements.txt
-	pip install -e .
+	pipenv install --dev
 
 .PHONY: lint
 lint:
