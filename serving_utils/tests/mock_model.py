@@ -64,10 +64,9 @@ class MockModel:
                     self.y_place: y,
                 },
             )
-            self.save_tf_serve()
 
-    def save_tf_serve(self):
-        pass
+    def evaluate(self, x, y):
+        return self.sess.run(self.loss.name, feed_dict={self.x_place.name: x, self.y_place.name: y})
 
     def define_signature(self):
         signature_def_map = {
