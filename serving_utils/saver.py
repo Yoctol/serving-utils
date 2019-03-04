@@ -46,7 +46,12 @@ class Saver:
         output_op_names = []
         for signature_value in self.signature_def_map.values():
             for _, tensor_info in signature_value.outputs.items():
-                output_op_names.append(tensor_info.name[:-2])
+                tensor_name = tensor_info.name
+                if ':' in tensor_name:
+                    op_name = tensor_name.split(':')[0]
+                else:
+                    op_name = tensor_name
+                output_op_names.append(op_name)
 
         frozen_graph_def = graph_util.convert_variables_to_constants(
             sess=self.session,
@@ -59,5 +64,4 @@ class Saver:
             tf.import_graph_def(frozen_graph_def, name="")
 
         # update session
-        self.session.close()
         self.session = new_sess
