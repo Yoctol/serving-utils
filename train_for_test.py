@@ -16,8 +16,8 @@ with tf.Session(graph=graph) as sess:
             'test': tf.saved_model.signature_def_utils.predict_signature_def(
                 inputs={'a': a, 'b': b},
                 outputs={'c': c},
-            )
-        }
+            ),
+        },
     )
 
     saver.save()
