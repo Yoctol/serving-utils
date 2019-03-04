@@ -18,6 +18,7 @@ else:
 
 
 class BuildPackageProtos(install):
+
     def run(self):
         install.run(self)
         from grpc.tools import command
@@ -25,6 +26,7 @@ class BuildPackageProtos(install):
 
 
 class BuildPackageProtosDevelop(develop):
+
     def run(self):
         develop.run(self)
         from grpc.tools import command
