@@ -1,6 +1,15 @@
 # serving-utils
 
-[![Build Status](https://travis-ci.org/Yoctol/serving-utils.svg?branch=master)](https://travis-ci.org/Yoctol/serving-utils) [![PyPI version](https://badge.fury.io/py/serving-utils.svg)](https://badge.fury.io/py/serving-utils)
+[![travis][travis-image]][travis-url]
+[![pypi][pypi-image]][pypi-url]
+![release][release-image]
+
+[travis-image]: https://travis-ci.org/Yoctol/serving-utils.svg?branch=master
+[travis-url]: https://travis-ci.org/Yoctol/serving-utils
+[pypi-image]: https://img.shields.io/pypi/v/serving-utils.svg?style=flat
+[pypi-url]: https://pypi.python.org/pypi/serving-utils
+[release-image]: https://img.shields.io/github/release/Yoctol/serving-utils.svg
+
 
 Some python utilities when using tensorflow-serving.
 
