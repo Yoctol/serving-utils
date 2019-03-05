@@ -47,6 +47,10 @@ class Saver:
                 signature_def_map=self.signature_def_map,
             )
         builder.save()
+
+        if self.freeze:
+            session_to_be_saved.close()
+
         return output_version_dir
 
     @staticmethod
