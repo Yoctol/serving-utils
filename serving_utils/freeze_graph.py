@@ -8,6 +8,9 @@ def freeze_graph(session, output_op_names):
     Freeze graph accroding to input session and
     output operation names
 
+    ref: https://github.com/tensorflow/tensorflow/blob/master/tensorflow/
+        python/tools/freeze_graph.py
+
     Args:
         session: an instance of tf.Session
         output_op_names (strs): a list of operation names

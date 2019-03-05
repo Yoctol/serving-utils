@@ -2,6 +2,10 @@
 
 .PHONY: install
 install:
+	pipenv install
+
+.PHONY: install-dev
+install-dev:
 	pipenv install --dev
 
 .PHONY: lint
@@ -21,7 +25,7 @@ testall:
 	docker-compose rm -f
 
 .PHONY: all
-all: install testall lint
+all: install-dev lint testall
 
 .PHONY: clean
 clean:

@@ -13,7 +13,7 @@ before_install:
   - sudo apt-get install pandoc -y
 install:
   - pip install pipenv==2018.10.13
-  - make install
+  - make install-dev
   - pipenv run pip install tensorflow
 script:
   - pipenv run make lint
