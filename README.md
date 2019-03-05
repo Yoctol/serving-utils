@@ -13,7 +13,10 @@
 
 Some python utilities when using tensorflow-serving.
 
+
 ## Installation
+
+Prepare an environment with python version >= 3.6
 
 From PYPI:
 1. Manually install tensorflow CPU or GPU version.
@@ -21,7 +24,8 @@ From PYPI:
 
 From Github repository:
 1. `git clone git@github.com:Yoctol/serving-utils.git`
-2. `make install`
+2. Manually install tensorflow CPU or GPU version.
+3. `make install`
 
 
 ## Usage
@@ -41,6 +45,7 @@ saver = Saver(
             outputs={'output': tf.Tensor...},
         )
     },
+    freeze=True,  # (default: True) Frozen graph will be saved if True.
 )
 saver.save(...)
 ```
@@ -60,6 +65,15 @@ client.predict(
 await client.async_predict(...)
 ```
 
+3. Freeze graph
+```python
+from serving_utils.freeze_graph import freeze_graph, create_session_from_graphdef
+
+frozen_graph_def = freeze_graph(session, output_op_names)
+new_session = create_session_from_graphdef(frozen_graph_def)
+```
+
+
 ## Test
 
 Run the following commands:
@@ -68,8 +82,9 @@ make lint
 make test
 ```
 
+
 ## Dev
 
 ```
-make install
+make install-dev
 ```
