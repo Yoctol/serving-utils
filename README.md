@@ -47,7 +47,7 @@ saver = Saver(
     },
     freeze=True,  # (default: True) Frozen graph will be saved if True.
 )
-saver.save(...)
+saver.save()
 ```
 
 2. Client
