@@ -46,7 +46,7 @@ def operations_in_graph(graph_def, op_names):
             raise KeyError(f"{op_name} is not in this graph.")
 
 
-def create_session_from_graphdef(graph_def):
+def create_session_from_graphdef(graph_def, dont_log=False):
     """
     Create new session from given tf.GraphDef object
 
@@ -57,7 +57,14 @@ def create_session_from_graphdef(graph_def):
        session (tf.Session): a new session with given graph_def
 
     """
+    if dont_log:
+        import os
+        from tensorflow import logging
+        logging.set_verbosity(logging.ERROR)
     new_sess = tf.Session(graph=tf.Graph())
     with new_sess.graph.as_default():
         tf.import_graph_def(graph_def, name="")
+    if dont_log:
+        logging.set_verbosity(logging.ERROR)
+        os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
     return new_sess

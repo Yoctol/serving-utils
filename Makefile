@@ -14,7 +14,7 @@ lint:
 
 .PHONY: test
 test:
-	pytest -m "not integration" .
+	pytest -m "not integration" -s .
 
 .PHONY: testall
 testall:

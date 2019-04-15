@@ -23,7 +23,10 @@ def model(x_test):
 
 def test_create_session_from_graphdef(model):
     old_graph_def = model.sess.graph_def
+    print('log')
     new_sess = create_session_from_graphdef(model.sess.graph_def)
+    print('dont log')
+    new_sess2 = create_session_from_graphdef(model.sess.graph_def, dont_log=True)
     assert old_graph_def == new_sess.graph_def
 
 
