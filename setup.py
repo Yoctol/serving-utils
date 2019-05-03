@@ -35,7 +35,7 @@ class BuildPackageProtosDevelop(develop):
 
 setup(
     name='serving-utils',
-    version='0.7.0',
+    version='0.8.0',
     description='Some utilities for tensorflow serving',
     long_description=long_description,
     python_requires='>=3.6',
