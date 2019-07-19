@@ -5,11 +5,12 @@ import asyncio
 from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
 
-from aiogrpc import Channel
 import grpc
+from grpclib.client import Channel
 import tensorflow as tf
 
 from .protos import predict_pb2, prediction_service_pb2_grpc, list_models_pb2, list_models_pb2_grpc
+from .protos import prediction_service_grpc
 
 
 def copy_message(src, dst):
@@ -66,15 +67,18 @@ class Client:
                 credentials=creds,
                 options=channel_options,
             )
-        self._async_channel = Channel(
-            self._channel,
-            loop=loop,
-            executor=executor,
-            standalone_pool_for_streaming=standalone_pool_for_streaming,
-        )
+
+        if loop is None:
+            loop = asyncio.get_event_loop()
+
+        split_addr = addr.split(':')
+        host = split_addr[0]
+        port = split_addr[1]
+        # TODO: better addr parsing, secure channel
+        self._async_channel = Channel(host, port, loop=loop)
 
         self._stub = prediction_service_pb2_grpc.PredictionServiceStub(self._channel)
-        self._async_stub = prediction_service_pb2_grpc.PredictionServiceStub(self._async_channel)
+        self._async_stub = prediction_service_grpc.PredictionServiceStub(self._async_channel)
         self._check_address_health()
 
     def _check_address_health(self):

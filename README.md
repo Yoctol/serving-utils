@@ -102,3 +102,9 @@ make test
 ```
 make install-dev
 ```
+
+### Protos
+
+```
+python -m grpc_tools.protoc -I. --python_out=. --python_grpc_out=. --grpc_python_out=. serving_utils/protos/*.proto
+```
