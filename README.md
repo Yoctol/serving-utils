@@ -30,11 +30,12 @@ From Github repository:
 
 ## Usage
 
-1. Saver
+1. Saver and Loader
 ```python
 import tensorflow as tf
 
-from serving_utils import Saver
+from serving_utils.saver import Saver
+from serving_utils.loader import Loader
 
 saver = Saver(
     session=tf.Session(graph=your_graph),
@@ -48,6 +49,14 @@ saver = Saver(
     freeze=True,  # (default: True) Frozen graph will be saved if True.
 )
 saver.save()
+
+loader = Loader(
+    path='/path/to/serving',
+    # version=1,  # if not specified, use the latest version
+)
+new_sess = tf.Session()
+
+loader.load(new_sess)  # load the saved model into new session
 ```
 
 2. Client
@@ -71,6 +80,11 @@ from serving_utils.freeze_graph import freeze_graph, create_session_from_graphde
 
 frozen_graph_def = freeze_graph(session, output_op_names)
 new_session = create_session_from_graphdef(frozen_graph_def)
+```
+
+4. Loader
+```python
+
 ```
 
 
