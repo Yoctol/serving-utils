@@ -14,7 +14,7 @@ before_install:
 install:
   - pip install pipenv==2018.10.13
   - make install-dev
-  - pipenv run pip install tensorflow
+  - pipenv run pip install tensorflow==1.14.0
 script:
   - pipenv run make lint
   - pipenv run make testall
