@@ -93,7 +93,8 @@ async def test_load_balancing():
             patch.object(Client,
                          '_check_address_health'):
 
-            mock_gethostbyname_ex.return_value=('localhost', [], ['1.2.3.4'])
+            # Case: Host name resolves to 1 IP address
+            mock_gethostbyname_ex.return_value = ('localhost', [], ['1.2.3.4'])
 
             c = Client(host='localhost', port=9999)
             assert_n_unique_mocks(created_grpc_channels, 'target', 1)
@@ -102,15 +103,15 @@ async def test_load_balancing():
             assert_n_unique_mocks(created_async_stubs, 'channel', 1)
 
             created_async_stubs[0].Predict.assert_not_awaited()
-           
-            await client_async_predict(c) 
+
+            await client_async_predict(c)
 
             created_async_stubs[0].Predict.assert_awaited()
 
-
+            # Case: Host name resolves to 2 IP addresses
             clear_created()
             mock_gethostbyname_ex.return_value = ('localhost', [], ['1.2.3.4', '5.6.7.8'])
-            
+
             c = Client(host='localhost', port=9999)
 
             assert_n_unique_mocks(created_grpc_channels, 'target', 2)
@@ -124,6 +125,7 @@ async def test_load_balancing():
             created_async_stubs[0].Predict.assert_awaited()
             created_async_stubs[1].Predict.assert_awaited()
 
+            # Case: Host name resolves to 3 IP address
             clear_created()
             mock_gethostbyname_ex.return_value = (
                 'localhost', [], ['1.2.3.4', '5.6.7.8', '9.10.11.12'])
