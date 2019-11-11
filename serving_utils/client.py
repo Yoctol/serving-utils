@@ -37,7 +37,8 @@ class Client:
 
     def __init__(
             self,
-            addr: str,
+            host: str,
+            port: int,
             pem: str = None,
             channel_options: dict = None,
             loop: asyncio.AbstractEventLoop = None,
@@ -55,7 +56,7 @@ class Client:
             standalone_pool_for_streaming: create a new thread pool (with 1 thread)
                 for each streaming method
         """
-        self.addr = addr
+        self.addr = f"{host}:{port}"
         if channel_options is None:
             channel_options = {}
         if pem is None:
@@ -66,10 +67,6 @@ class Client:
 
         if loop is None:
             loop = asyncio.get_event_loop()
-
-        split_addr = addr.split(':')
-        host = split_addr[0]
-        port = split_addr[1]
 
         _, _, addrlist = socket.gethostbyname_ex(host)
         channels = []

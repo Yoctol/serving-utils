@@ -42,24 +42,34 @@ async def test_load_balancing():
     created_stubs = []
     created_async_stubs = []
 
+    def assert_n_unique_mocks(mocks, attr, n):
+        assert len(mocks) == n
+        s = set(getattr(m, attr) for m in mocks)
+        print(s)
+        assert len(s) == n
+
     def create_a_fake_grpclib_channel(addr, port, loop):
         m = mock.MagicMock(name=f"{addr}:{port}")
+        m.addr = addr
         created_grpclib_channels.append(m)
         return m
 
     def create_a_fake_grpc_channel(target, *_, **__):
         m = mock.MagicMock(name=target)
+        m.target = target
         created_grpc_channels.append(m)
         return m
 
-    def create_a_fake_async_stub(*args, **kwargs):
-        m = mock.MagicMock(name=f"async stub {args} {kwargs}")
+    def create_a_fake_async_stub(mock_channel):
+        m = mock.MagicMock(name=f"async stub channel={mock_channel}")
+        m.channel = mock_channel
         m.Predict = CoroutineMock()
         created_async_stubs.append(m)
         return m
 
-    def create_a_fake_stub(*args, **kwargs):
-        m = mock.MagicMock(name=f"stub {args} {kwargs}")
+    def create_a_fake_stub(mock_channel):
+        m = mock.MagicMock(name=f"stub channel={mock_channel}")
+        m.channel = mock_channel
         created_stubs.append(m)
         return m
 
@@ -85,11 +95,11 @@ async def test_load_balancing():
 
             mock_gethostbyname_ex.return_value=('localhost', [], ['1.2.3.4'])
 
-            c = Client('localhost:9999')
-            assert len(created_grpc_channels) == 1
-            assert len(created_grpclib_channels) == 1
-            assert len(created_stubs) == 1
-            assert len(created_async_stubs) == 1
+            c = Client(host='localhost', port=9999)
+            assert_n_unique_mocks(created_grpc_channels, 'target', 1)
+            assert_n_unique_mocks(created_grpclib_channels, 'addr', 1)
+            assert_n_unique_mocks(created_stubs, 'channel', 1)
+            assert_n_unique_mocks(created_async_stubs, 'channel', 1)
 
             created_async_stubs[0].Predict.assert_not_awaited()
            
@@ -101,11 +111,12 @@ async def test_load_balancing():
             clear_created()
             mock_gethostbyname_ex.return_value = ('localhost', [], ['1.2.3.4', '5.6.7.8'])
             
-            c = Client('localhost:9999')
-            assert len(created_grpc_channels) == 2
-            assert len(created_grpclib_channels) == 2
-            assert len(created_stubs) == 2
-            assert len(created_async_stubs) == 2
+            c = Client(host='localhost', port=9999)
+
+            assert_n_unique_mocks(created_grpc_channels, 'target', 2)
+            assert_n_unique_mocks(created_grpclib_channels, 'addr', 2)
+            assert_n_unique_mocks(created_stubs, 'channel', 2)
+            assert_n_unique_mocks(created_async_stubs, 'channel', 2)
 
             await client_async_predict(c)
             await client_async_predict(c)
@@ -117,11 +128,12 @@ async def test_load_balancing():
             mock_gethostbyname_ex.return_value = (
                 'localhost', [], ['1.2.3.4', '5.6.7.8', '9.10.11.12'])
 
-            c = Client('localhost:9999')
-            assert len(created_grpc_channels) == 3
-            assert len(created_grpclib_channels) == 3
-            assert len(created_stubs) == 3
-            assert len(created_async_stubs) == 3
+            c = Client(host='localhost', port=9999)
+
+            assert_n_unique_mocks(created_grpc_channels, 'target', 3)
+            assert_n_unique_mocks(created_grpclib_channels, 'addr', 3)
+            assert_n_unique_mocks(created_stubs, 'channel', 3)
+            assert_n_unique_mocks(created_async_stubs, 'channel', 3)
 
             await client_async_predict(c)
             await client_async_predict(c)
