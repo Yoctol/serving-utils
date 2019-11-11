@@ -97,8 +97,9 @@ class Client:
             time.sleep(1)
             req = predict_pb2.PredictRequest()
             req.model_spec.name = 'intentionally_missing_model'
+            stub = self.get_round_robin_stub(is_async_stub=False)
             try:
-                self._stub.Predict(req, self.TIMEOUT_SECONDS)
+                stub.Predict(req, self.TIMEOUT_SECONDS)
             except Exception as e:
                 _code = e._state.code
                 if _code == grpc.StatusCode.UNAVAILABLE:
