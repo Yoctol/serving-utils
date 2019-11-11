@@ -1,3 +1,6 @@
+from functools import partial
+import itertools
+import socket
 from typing import List
 import time
 
@@ -56,17 +59,10 @@ class Client:
         if channel_options is None:
             channel_options = {}
         if pem is None:
-            self._channel = grpc.insecure_channel(
-                addr,
-                options=channel_options,
-            )
+            make_sync_channel = grpc.insecure_channel
         else:
             creds = grpc.ssl_channel_credentials(pem)
-            self._channel = grpc.secure_channel(
-                addr,
-                credentials=creds,
-                options=channel_options,
-            )
+            make_sync_channel = partial(grpc.secure_channel, credentials=creds)
 
         if loop is None:
             loop = asyncio.get_event_loop()
@@ -74,11 +70,28 @@ class Client:
         split_addr = addr.split(':')
         host = split_addr[0]
         port = split_addr[1]
-        # TODO: better addr parsing, secure channel
-        self._async_channel = Channel(host, port, loop=loop)
 
-        self._stub = prediction_service_pb2_grpc.PredictionServiceStub(self._channel)
-        self._async_stub = prediction_service_grpc.PredictionServiceStub(self._async_channel)
+        _, _, addrlist = socket.gethostbyname_ex(host)
+        channels = []
+        async_channels = []
+        stubs = []
+        async_stubs = []
+        for a in addrlist:
+            channels.append(make_sync_channel(
+                f"{a}:{port}",
+                options=channel_options,
+            ))
+            stubs.append(prediction_service_pb2_grpc.PredictionServiceStub(channels[-1]))
+
+            async_channels.append(Channel(a, port, loop=loop))
+            async_stubs.append(prediction_service_grpc.PredictionServiceStub(async_channels[-1]))
+
+        self._stubs = stubs
+        self._async_stubs = async_stubs
+        self._channels = channels
+        self._async_channels = async_channels
+        self._round_robin_cycler = itertools.cycle(range(len(addrlist)))
+
         self._check_address_health()
 
     def _check_address_health(self):
@@ -132,6 +145,13 @@ class Client:
         response = stub.ListModels(list_models_pb2.ListModelsRequest())
         return response.models
 
+    def get_round_robin_stub(self, is_async_stub=False):
+        i = next(self._round_robin_cycler)
+        if is_async_stub:
+            return self._async_stubs[i]
+        else:
+            return self._stubs[i]
+
     def predict(
             self,
             data: List[PredictInput],
@@ -145,7 +165,8 @@ class Client:
             model_name=model_name,
             model_signature_name=model_signature_name,
         )
-        response = self._stub.Predict(request)
+        stub = self.get_round_robin_stub(is_async_stub=False)
+        response = stub.Predict(request)
         return self.parse_predict_response(response)
 
     async def async_predict(
@@ -161,5 +182,6 @@ class Client:
             model_name=model_name,
             model_signature_name=model_signature_name,
         )
-        response = await self._async_stub.Predict(request)
+        stub = self.get_round_robin_stub(is_async_stub=True)
+        response = await stub.Predict(request)
         return self.parse_predict_response(response)
