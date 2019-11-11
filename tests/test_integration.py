@@ -23,7 +23,8 @@ async def test_client():
             time.sleep(1)
             try:
                 client = Client(
-                    addr=f"localhost:{serving_port}",
+                    host="localhost",
+                    port=serving_port,
                 )
                 client.predict(None, output_names='wrong_model', model_signature_name='test')
                 break
@@ -37,7 +38,8 @@ async def test_client():
     clients = []
     for serving_port in test_serving_ports:
         clients.append(Client(
-            addr=f"localhost:{serving_port}",
+            host="localhost",
+            port=serving_port,
         ))
 
     req_data = [
@@ -78,5 +80,6 @@ async def test_not_exist_addr():
     for serving_port in test_serving_ports:
         with pytest.raises(grpc._channel._Rendezvous):
             Client(
-                addr=f"localhost:{serving_port}",
+                host="localhost",
+                port=serving_port,
             )
