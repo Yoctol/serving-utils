@@ -48,7 +48,8 @@ class Client:
         """Constructor.
 
         Args:
-            addr (str) : address of your serving
+            host (str) : hostname of your serving
+            port (int) : port of your serving
             pem: credentials of grpc
             channel+options: An optional list of key-value pairs (channel args in gRPC runtime)
             loop: asyncio event loop
