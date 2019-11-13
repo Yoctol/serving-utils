@@ -79,6 +79,12 @@ async def test_load_balancing():
         created_stubs.clear()
         created_async_stubs.clear()
 
+    def assert_n_connections(n):
+        assert_n_unique_mocks(created_grpc_channels, 'target', n)
+        assert_n_unique_mocks(created_grpclib_channels, 'addr', n)
+        assert_n_unique_mocks(created_stubs, 'channel', n)
+        assert_n_unique_mocks(created_async_stubs, 'channel', n)
+
     with patch('socket.gethostbyname_ex') as mock_gethostbyname_ex:
         with patch('serving_utils.client.Channel',
                    side_effect=create_a_fake_grpclib_channel), \
@@ -97,10 +103,7 @@ async def test_load_balancing():
             mock_gethostbyname_ex.return_value = ('localhost', [], ['1.2.3.4'])
 
             c = Client(host='localhost', port=9999)
-            assert_n_unique_mocks(created_grpc_channels, 'target', 1)
-            assert_n_unique_mocks(created_grpclib_channels, 'addr', 1)
-            assert_n_unique_mocks(created_stubs, 'channel', 1)
-            assert_n_unique_mocks(created_async_stubs, 'channel', 1)
+            assert_n_connections(1)
 
             created_async_stubs[0].Predict.assert_not_awaited()
 
@@ -114,10 +117,7 @@ async def test_load_balancing():
 
             c = Client(host='localhost', port=9999)
 
-            assert_n_unique_mocks(created_grpc_channels, 'target', 2)
-            assert_n_unique_mocks(created_grpclib_channels, 'addr', 2)
-            assert_n_unique_mocks(created_stubs, 'channel', 2)
-            assert_n_unique_mocks(created_async_stubs, 'channel', 2)
+            assert_n_connections(2)
 
             await client_async_predict(c)
             await client_async_predict(c)
@@ -132,10 +132,7 @@ async def test_load_balancing():
 
             c = Client(host='localhost', port=9999)
 
-            assert_n_unique_mocks(created_grpc_channels, 'target', 3)
-            assert_n_unique_mocks(created_grpclib_channels, 'addr', 3)
-            assert_n_unique_mocks(created_stubs, 'channel', 3)
-            assert_n_unique_mocks(created_async_stubs, 'channel', 3)
+            assert_n_connections(3)
 
             await client_async_predict(c)
             await client_async_predict(c)
