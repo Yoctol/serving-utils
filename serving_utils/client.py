@@ -60,37 +60,73 @@ class Client:
         self.addr = f"{host}:{port}"
         if channel_options is None:
             channel_options = {}
+        self._channel_options = channel_options
         if pem is None:
             make_sync_channel = grpc.insecure_channel
         else:
             creds = grpc.ssl_channel_credentials(pem)
             make_sync_channel = partial(grpc.secure_channel, credentials=creds)
+        self._make_sync_channel = make_sync_channel
 
         if loop is None:
             loop = asyncio.get_event_loop()
 
-        _, _, addrlist = socket.gethostbyname_ex(host)
+        self._host = host
+        self._port = port
+
+        self._addrlist = []
+        self._stubs = []
+        self._async_stubs = []
+        self._channels = []
+        self._async_channels = []
+
+        self._loop = loop
+        self._setup_connections()
+        self._check_address_health()
+
+    def _setup_connections(self):
+        host = self._host
+        port = self._port
+
+        _, _, new_addrs = socket.gethostbyname_ex(host)
+        if self._addrlist == new_addrs:
+            return
+
         channels = []
         async_channels = []
         stubs = []
         async_stubs = []
-        for a in addrlist:
-            channels.append(make_sync_channel(
+
+        old_addrs = []
+        for a, c, ac, s, as_s in zip(
+            self._addrlist, self._channels, self._async_channels, self._stubs, self._async_stubs):
+
+            if a in new_addrs:
+                channels.append(c)
+                async_channels.append(ac)
+                stubs.append(s)
+                async_stubs.append(as_s)
+                old_addrs.append(a)
+                new_addrs.remove(a)
+
+        for a in new_addrs:
+            channels.append(self._make_sync_channel(
                 f"{a}:{port}",
-                options=channel_options,
+                options=self._channel_options,
             ))
             stubs.append(prediction_service_pb2_grpc.PredictionServiceStub(channels[-1]))
 
-            async_channels.append(Channel(a, port, loop=loop))
+            async_channels.append(Channel(a, port, loop=self._loop))
             async_stubs.append(prediction_service_grpc.PredictionServiceStub(async_channels[-1]))
 
+        self._addrlist = old_addrs + new_addrs
         self._stubs = stubs
         self._async_stubs = async_stubs
         self._channels = channels
         self._async_channels = async_channels
-        self._round_robin_cycler = itertools.cycle(range(len(addrlist)))
-
-        self._check_address_health()
+        self._round_robin_cycler = itertools.cycle(range(len(self._addrlist)))
+        for _ in old_addrs:
+            next(self._round_robin_cycler)
 
     def _check_address_health(self):
         for _ in range(self.CHECK_ADDRESS_HEALTH_TIMES):
@@ -145,7 +181,10 @@ class Client:
         return response.models
 
     def get_round_robin_stub(self, is_async_stub=False):
-        i = next(self._round_robin_cycler)
+        try:
+            i = next(self._round_robin_cycler)
+        except StopIteration:
+            raise Exception("no connections")
         if is_async_stub:
             return self._async_stubs[i]
         else:
@@ -158,14 +197,23 @@ class Client:
             model_name: str = 'default',
             model_signature_name: str = None,
         ):
+
+        self._setup_connections()
+
         request = self._predict_request(
             data=data,
             output_names=output_names,
             model_name=model_name,
             model_signature_name=model_signature_name,
         )
-        stub = self.get_round_robin_stub(is_async_stub=False)
-        response = stub.Predict(request)
+        while True:
+            stub = self.get_round_robin_stub(is_async_stub=False)
+            try:
+                response = stub.Predict(request)
+            except Exception:
+                pass
+            else:
+                break
         return self.parse_predict_response(response)
 
     async def async_predict(
@@ -175,12 +223,22 @@ class Client:
             model_name: str = 'default',
             model_signature_name: str = None,
         ):
+
+        self._setup_connections()
+
         request = self._predict_request(
             data=data,
             output_names=output_names,
             model_name=model_name,
             model_signature_name=model_signature_name,
         )
-        stub = self.get_round_robin_stub(is_async_stub=True)
-        response = await stub.Predict(request)
+        while True:
+            stub = self.get_round_robin_stub(is_async_stub=True)
+            try:
+                response = await stub.Predict(request)
+            except Exception:
+                pass
+            else:
+                break
+
         return self.parse_predict_response(response)
