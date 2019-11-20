@@ -41,3 +41,6 @@ class RoundRobinMap(collections.abc.MutableMapping):
                 self._list.pop(i)
                 break
         self._list.insert(0, (k, v))
+
+    def keys(self):
+        return {k for (k, _) in self._list}
