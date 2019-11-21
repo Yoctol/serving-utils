@@ -267,8 +267,10 @@ async def test_server_reset_handling():
             assert conns['12.12.12.12'].async_stub.Predict.await_count == 1
 
             # Case: Host reset, 1 IP removed and 2 new IPs added
-            mock_host_reset(mock_gethostbyname_ex,
-                ['10.10.10.10', '11.11.11.11', '13.13.13.13', '14.14.14.14'])
+            mock_host_reset(
+                mock_gethostbyname_ex,
+                ['10.10.10.10', '11.11.11.11', '13.13.13.13', '14.14.14.14'],
+            )
             await client_async_predict(c)
             await client_async_predict(c)
 
