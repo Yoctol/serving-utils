@@ -229,16 +229,19 @@ async def test_server_reset_handling():
             c = Client(host='localhost', port=9999)
             assert_n_connections(c, 0)
 
+            # Case: Host reset, resolves to 1 IP addresses
             mock_host_reset(mock_gethostbyname_ex, ['1.2.3.4'])
 
             await client_async_predict(c)
             assert_n_connections(c, 1)
 
+            # Case: Host reset, resolves to 1 different IP address
             mock_host_reset(mock_gethostbyname_ex, ['5.6.7.8'])
 
             await client_async_predict(c)
             assert_n_connections(c, 1)
 
+            # Case: Host reset, resolves to 2 different IP address
             mock_host_reset(mock_gethostbyname_ex, ['10.10.10.10', '11.11.11.11'])
 
             await client_async_predict(c)
@@ -254,6 +257,7 @@ async def test_server_reset_handling():
             assert conns['10.10.10.10'].async_stub.Predict.await_count == 3
             assert conns['11.11.11.11'].async_stub.Predict.await_count == 3
 
+            # Case: Host reset, 1 extra IP added
             mock_host_reset(mock_gethostbyname_ex, ['10.10.10.10', '11.11.11.11', '12.12.12.12'])
             await client_async_predict(c)
 
@@ -262,13 +266,29 @@ async def test_server_reset_handling():
             assert conns['11.11.11.11'].async_stub.Predict.await_count == 3
             assert conns['12.12.12.12'].async_stub.Predict.await_count == 1
 
-            async def bar(client):
+            # Case: Host reset, 1 IP removed and 2 new IPs added
+            mock_host_reset(mock_gethostbyname_ex,
+                ['10.10.10.10', '11.11.11.11', '13.13.13.13', '14.14.14.14'])
+            await client_async_predict(c)
+            await client_async_predict(c)
+
+            conns = dict(c._pool._list)
+            assert conns['10.10.10.10'].async_stub.Predict.await_count == 3
+            assert conns['11.11.11.11'].async_stub.Predict.await_count == 3
+            assert conns['13.13.13.13'].async_stub.Predict.await_count == 1
+            assert conns['14.14.14.14'].async_stub.Predict.await_count == 1
+
+            # Fuzz test
+            # Randomly reset host a number of times
+            # Testing that old conns are never used, if they are used an exception
+            # will be raised
+            async def loop_calling_async_predict(client):
                 while True:
                     n = random.randint(1, 5)
                     await aio.gather(*[client_async_predict(client) for _ in range(n)])
                     await aio.sleep(random.random())
 
-            async def foo(client, mock_gethostbyname_ex):
+            async def loop_host_reset(client, mock_gethostbyname_ex):
                 while True:
                     mock_host_reset(
                         mock_gethostbyname_ex,
@@ -276,8 +296,11 @@ async def test_server_reset_handling():
                     )
                     await aio.sleep(random.random() + 0.5)
 
-            t = aio.ensure_future(aio.gather(bar(c), foo(c, mock_gethostbyname_ex)))
-            await aio.sleep(5)
+            t = aio.ensure_future(aio.gather(
+                loop_calling_async_predict(c),
+                loop_host_reset(c, mock_gethostbyname_ex),
+            ))
+            await aio.sleep(3)
             t.cancel()
             try:
                 await t
