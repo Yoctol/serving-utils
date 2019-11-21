@@ -1,5 +1,4 @@
 from functools import partial
-import itertools
 import socket
 from typing import List
 import time
@@ -11,6 +10,8 @@ from concurrent.futures import ThreadPoolExecutor
 import grpc
 from grpclib.client import Channel
 import tensorflow as tf
+
+from .round_robin_map import RoundRobinMap
 
 from .protos import predict_pb2, prediction_service_pb2_grpc, list_models_pb2, list_models_pb2_grpc
 from .protos import prediction_service_grpc
@@ -28,6 +29,55 @@ def copy_message(src, dst):
 
 
 PredictInput = namedtuple('PredictInput', ['name', 'value'])
+
+
+class Connection:
+    '''
+    An active connection to a model serving GRPC server
+    '''
+
+    TIMEOUT_SECONDS = 5
+
+    def __init__(
+        self,
+        addr: str,
+        port: int,
+        pem: str = None,
+        channel_options: dict = None,
+        loop: asyncio.AbstractEventLoop = None,
+    ):
+        self.addr = addr
+        self.port = port
+
+        if channel_options is None:
+            channel_options = {}
+        if pem is None:
+            make_sync_channel = grpc.insecure_channel
+        else:
+            creds = grpc.ssl_channel_credentials(pem)
+            make_sync_channel = partial(grpc.secure_channel, credentials=creds)
+
+        if loop is None:
+            loop = asyncio.get_event_loop()
+
+        self.sync_channel = make_sync_channel(f"{addr}:{port}")
+        self.async_channel = Channel(addr, port, loop=loop)
+
+        self.sync_stub = prediction_service_pb2_grpc.PredictionServiceStub(self.sync_channel)
+        self.async_stub = prediction_service_grpc.PredictionServiceStub(self.async_channel)
+
+        req = predict_pb2.PredictRequest()
+        req.model_spec.name = 'intentionally_missing_model'
+
+        try:
+            self.sync_stub.Predict(req, Connection.TIMEOUT_SECONDS)
+        except Exception as e:
+            _code = e._state.code
+
+            if _code == grpc.StatusCode.NOT_FOUND:
+                pass
+            else:
+                raise
 
 
 class Client:
@@ -58,6 +108,7 @@ class Client:
                 for each streaming method
         """
         self.addr = f"{host}:{port}"
+        self._pem = pem
         if channel_options is None:
             channel_options = {}
         self._channel_options = channel_options
@@ -74,59 +125,33 @@ class Client:
         self._host = host
         self._port = port
 
-        self._addrlist = []
-        self._stubs = []
-        self._async_stubs = []
-        self._channels = []
-        self._async_channels = []
-
+        self._pool = RoundRobinMap()
         self._loop = loop
+
         self._setup_connections()
-        self._check_address_health()
 
     def _setup_connections(self):
         host = self._host
-        port = self._port
 
-        _, _, new_addrs = socket.gethostbyname_ex(host)
-        if self._addrlist == new_addrs:
+        _, _, current_addrs = socket.gethostbyname_ex(host)
+        current_addrs = set(current_addrs)
+        original_addrs = self._pool.keys()
+        if original_addrs == current_addrs:
             return
 
-        channels = []
-        async_channels = []
-        stubs = []
-        async_stubs = []
+        missing = original_addrs - current_addrs
+        for address in missing:
+            del self._pool[address]
 
-        old_addrs = []
-        for a, c, ac, s, as_s in zip(
-            self._addrlist, self._channels, self._async_channels, self._stubs, self._async_stubs):
-
-            if a in new_addrs:
-                channels.append(c)
-                async_channels.append(ac)
-                stubs.append(s)
-                async_stubs.append(as_s)
-                old_addrs.append(a)
-                new_addrs.remove(a)
-
-        for a in new_addrs:
-            channels.append(self._make_sync_channel(
-                f"{a}:{port}",
-                options=self._channel_options,
-            ))
-            stubs.append(prediction_service_pb2_grpc.PredictionServiceStub(channels[-1]))
-
-            async_channels.append(Channel(a, port, loop=self._loop))
-            async_stubs.append(prediction_service_grpc.PredictionServiceStub(async_channels[-1]))
-
-        self._addrlist = old_addrs + new_addrs
-        self._stubs = stubs
-        self._async_stubs = async_stubs
-        self._channels = channels
-        self._async_channels = async_channels
-        self._round_robin_cycler = itertools.cycle(range(len(self._addrlist)))
-        for _ in old_addrs:
-            next(self._round_robin_cycler)
+        new_addrs = current_addrs - original_addrs
+        for address in new_addrs:
+            self._pool[address] = Connection(
+                address,
+                self._port,
+                self._pem,
+                self._channel_options,
+                self._loop,
+            )
 
     def _check_address_health(self):
         for _ in range(self.CHECK_ADDRESS_HEALTH_TIMES):
@@ -182,13 +207,13 @@ class Client:
 
     def get_round_robin_stub(self, is_async_stub=False):
         try:
-            i = next(self._round_robin_cycler)
+            _, conn = next(iter(self._pool))
         except StopIteration:
             raise Exception("no connections")
         if is_async_stub:
-            return self._async_stubs[i]
+            return conn.async_stub
         else:
-            return self._stubs[i]
+            return conn.sync_stub
 
     def predict(
             self,

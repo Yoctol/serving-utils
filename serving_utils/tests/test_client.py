@@ -207,10 +207,7 @@ async def test_server_reset_handling():
             stub.Predict.side_effect = GRPCError(Status.UNAVAILABLE)
 
     def assert_n_connections(c, n):
-        assert_n_unique_mocks(c._channels, 'target', n)
-        assert_n_unique_mocks(c._async_channels, 'addr', n)
-        assert_n_unique_mocks(c._stubs, 'channel', n)
-        assert_n_unique_mocks(c._async_stubs, 'channel', n)
+        assert len(c._pool) == n
 
     with patch('socket.gethostbyname_ex') as mock_gethostbyname_ex:
         with patch('serving_utils.client.Channel',
@@ -253,15 +250,17 @@ async def test_server_reset_handling():
             await client_async_predict(c)
             await client_async_predict(c)
 
-            assert c._async_stubs[0].Predict.call_count == 3
-            assert c._async_stubs[1].Predict.call_count == 3
+            conns = dict(c._pool._list)
+            assert conns['10.10.10.10'].async_stub.Predict.await_count == 3
+            assert conns['11.11.11.11'].async_stub.Predict.await_count == 3
 
             mock_host_reset(mock_gethostbyname_ex, ['10.10.10.10', '11.11.11.11', '12.12.12.12'])
             await client_async_predict(c)
 
-            assert c._async_stubs[0].Predict.call_count == 3
-            assert c._async_stubs[1].Predict.call_count == 3
-            assert c._async_stubs[2].Predict.call_count == 1
+            conns = dict(c._pool._list)
+            assert conns['10.10.10.10'].async_stub.Predict.await_count == 3
+            assert conns['11.11.11.11'].async_stub.Predict.await_count == 3
+            assert conns['12.12.12.12'].async_stub.Predict.await_count == 1
 
             async def bar(client):
                 while True:
