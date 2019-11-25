@@ -39,13 +39,14 @@ class Connection:
     TIMEOUT_SECONDS = 5
 
     def __init__(
-        self,
-        addr: str,
-        port: int,
-        pem: str = None,
-        channel_options: dict = None,
-        loop: asyncio.AbstractEventLoop = None,
-    ):
+            self,
+            addr: str,
+            port: int,
+            pem: str = None,
+            channel_options: dict = None,
+            loop: asyncio.AbstractEventLoop = None,
+        ):
+
         self.addr = addr
         self.port = port
 
