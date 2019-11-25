@@ -153,6 +153,96 @@ async def test_load_balancing():
 
 
 @pytest.mark.asyncio
+async def test_retrying():
+    created_grpc_channels = []
+    created_grpclib_channels = []
+    created_stubs = []
+    created_async_stubs = []
+
+    def maybe_except(request, _):
+        model_name = request.model_spec.name
+        if model_name == 'intentionally_missing_model':
+            pass
+        else:
+            raise Exception()
+
+    def assert_n_unique_mocks(mocks, attr, n):
+        assert len(mocks) == n
+        s = set(getattr(m, attr) for m in mocks)
+        print(s)
+        assert len(s) == n
+
+    def create_a_fake_grpclib_channel(addr, port, loop):
+        m = mock.MagicMock(name=f"{addr}:{port}")
+        m.addr = addr
+        created_grpclib_channels.append(m)
+        return m
+
+    def create_a_fake_grpc_channel(target, *_, **__):
+        m = mock.MagicMock(name=target)
+        m.target = target
+        created_grpc_channels.append(m)
+        return m
+
+    def create_a_fake_async_stub(mock_channel):
+        m = mock.MagicMock(name=f"async stub channel={mock_channel}")
+        m.channel = mock_channel
+        m.Predict = CoroutineMock()
+        m.Predict.side_effect = maybe_except
+        created_async_stubs.append(m)
+        return m
+
+    def create_a_fake_stub(mock_channel):
+        m = mock.MagicMock(name=f"stub channel={mock_channel}")
+        m.channel = mock_channel
+        m.Predict.side_effect = maybe_except
+        created_stubs.append(m)
+        return m
+
+    with patch('socket.gethostbyname_ex') as mock_gethostbyname_ex:
+        with patch('serving_utils.client.Channel',
+                   side_effect=create_a_fake_grpclib_channel), \
+            patch('serving_utils.client.grpc.secure_channel',
+                  side_effect=create_a_fake_grpc_channel), \
+            patch('serving_utils.client.grpc.insecure_channel',
+                  side_effect=create_a_fake_grpc_channel), \
+            patch('serving_utils.client.prediction_service_grpc.PredictionServiceStub',
+                  side_effect=create_a_fake_async_stub), \
+            patch('serving_utils.client.prediction_service_pb2_grpc.PredictionServiceStub',
+                  side_effect=create_a_fake_stub):
+
+            mock_gethostbyname_ex.return_value = ('localhost', [], ['1.2.3.4'])
+
+            for n_trys in range(1, 5):
+
+                c = Client(host='localhost', port=9999, n_trys=n_trys)
+
+                with patch.object(
+                        Client,
+                        '_setup_connections',
+                        wraps=c._setup_connections,
+                    ) as m:
+
+                    try:
+                        await client_async_predict(c)
+                    except Exception:
+                        pass
+                assert m.call_count == n_trys
+
+                with patch.object(
+                        Client,
+                        '_setup_connections',
+                        wraps=c._setup_connections,
+                    ) as m:
+
+                    try:
+                        client_predict(c)
+                    except Exception:
+                        pass
+                assert m.call_count == n_trys
+
+
+@pytest.mark.asyncio
 async def test_server_reset_handling():
 
     created_grpc_channels = []

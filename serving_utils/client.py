@@ -71,7 +71,10 @@ class Connection:
         try:
             self.sync_stub.Predict(req, Connection.TIMEOUT_SECONDS)
         except Exception as e:
-            _code = e._state.code
+            try:
+                _code = e._state.code
+            except AttributeError:
+                raise e
 
             if _code == grpc.StatusCode.NOT_FOUND:
                 pass
@@ -85,6 +88,7 @@ class Client:
             self,
             host: str,
             port: int,
+            n_trys: int = 3,
             pem: str = None,
             channel_options: dict = None,
             loop: asyncio.AbstractEventLoop = None,
@@ -97,6 +101,7 @@ class Client:
         Args:
             host (str) : hostname of your serving
             port (int) : port of your serving
+            n_trys (int) : max number of times to try predict/async_predict
             pem: credentials of grpc
             channel_options: An optional list of key-value pairs (channel args in gRPC runtime)
             loop: asyncio event loop
@@ -123,6 +128,7 @@ class Client:
         self._loop = loop
 
         self._setup_connections()
+        self.n_trys = n_trys
 
     def _setup_connections(self):
         host = self._host
@@ -198,20 +204,18 @@ class Client:
             model_signature_name: str = None,
         ):
 
-        self._setup_connections()
-
         request = self._predict_request(
             data=data,
             output_names=output_names,
             model_name=model_name,
             model_signature_name=model_signature_name,
         )
-        while True:
+        for _ in range(self.n_trys):
             stub = self.get_round_robin_stub(is_async_stub=False)
             try:
                 response = stub.Predict(request)
             except Exception:
-                pass
+                self._setup_connections()
             else:
                 break
         return self.parse_predict_response(response)
@@ -224,20 +228,18 @@ class Client:
             model_signature_name: str = None,
         ):
 
-        self._setup_connections()
-
         request = self._predict_request(
             data=data,
             output_names=output_names,
             model_name=model_name,
             model_signature_name=model_signature_name,
         )
-        while True:
+        for _ in range(self.n_trys):
             stub = self.get_round_robin_stub(is_async_stub=True)
             try:
                 response = await stub.Predict(request)
             except Exception:
-                pass
+                self._setup_connections()
             else:
                 break
 
