@@ -339,7 +339,7 @@ async def test_server_reset_handling():
             await client_async_predict(c)
             await client_async_predict(c)
 
-            conns = dict(c._pool._list)
+            conns = c._pool._container
             assert conns['10.10.10.10'].async_stub.Predict.await_count == 3
             assert conns['11.11.11.11'].async_stub.Predict.await_count == 3
 
@@ -347,7 +347,7 @@ async def test_server_reset_handling():
             mock_host_reset(mock_gethostbyname_ex, ['10.10.10.10', '11.11.11.11', '12.12.12.12'])
             await client_async_predict(c)
 
-            conns = dict(c._pool._list)
+            conns = c._pool._container
             assert conns['10.10.10.10'].async_stub.Predict.await_count == 3
             assert conns['11.11.11.11'].async_stub.Predict.await_count == 3
             assert conns['12.12.12.12'].async_stub.Predict.await_count == 1
@@ -360,7 +360,7 @@ async def test_server_reset_handling():
             await client_async_predict(c)
             await client_async_predict(c)
 
-            conns = dict(c._pool._list)
+            conns = c._pool._container
             assert conns['10.10.10.10'].async_stub.Predict.await_count == 3
             assert conns['11.11.11.11'].async_stub.Predict.await_count == 3
             assert conns['13.13.13.13'].async_stub.Predict.await_count == 1

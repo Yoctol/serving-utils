@@ -5,42 +5,31 @@ class RoundRobinMap(collections.abc.MutableMapping):
 
     def __init__(self):
         self._list = []
+        self._container = collections.OrderedDict()
 
     def __delitem__(self, k):
-        for i, (key, _) in enumerate(self._list):
-            if key == k:
-                self._list.pop(i)
-                return
-        else:
-            return
+        del self._container[k]
 
     def __getitem__(self, k):
-
-        for i, (key, val) in enumerate(self._list):
-            if key == k:
-                self._list.pop(i)
-                self._list.append((key, val))
-                return val
-        else:
-            raise KeyError(k)
+        v = self._container[k]
+        self._container.move_to_end(k)
+        return v
 
     def __iter__(self):
-        if not self._list:
+        if not self._container:
             raise StopIteration
 
-        k, v = self._list.pop(0)
-        self._list.append((k, v))
-        yield (k, v)
+        first_key = next(iter(self._container))
+        v = self._container[first_key]
+        self._container.move_to_end(first_key)
+        yield (first_key, v)
 
     def __len__(self):
-        return len(self._list)
+        return len(self._container)
 
     def __setitem__(self, k, v):
-        for i, (key, _) in enumerate(self._list):
-            if key == k:
-                self._list.pop(i)
-                break
-        self._list.insert(0, (k, v))
+        self._container[k] = v
+        self._container.move_to_end(k, last=False)
 
     def keys(self):
-        return {k for (k, _) in self._list}
+        return self._container.keys()
