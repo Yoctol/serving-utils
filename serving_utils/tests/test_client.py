@@ -100,9 +100,7 @@ async def test_load_balancing():
             patch('serving_utils.client.prediction_service_grpc.PredictionServiceStub',
                   side_effect=create_a_fake_async_stub), \
             patch('serving_utils.client.prediction_service_pb2_grpc.PredictionServiceStub',
-                  side_effect=create_a_fake_stub), \
-            patch.object(Client,
-                         '_check_address_health'):
+                  side_effect=create_a_fake_stub):
 
             # Case: Host name resolves to 1 IP address
             mock_gethostbyname_ex.return_value = ('localhost', [], ['1.2.3.4'])
@@ -219,9 +217,7 @@ async def test_server_reset_handling():
             patch('serving_utils.client.prediction_service_grpc.PredictionServiceStub',
                   side_effect=create_a_fake_async_stub), \
             patch('serving_utils.client.prediction_service_pb2_grpc.PredictionServiceStub',
-                  side_effect=create_a_fake_stub), \
-            patch.object(Client,
-                         '_check_address_health'):
+                  side_effect=create_a_fake_stub):
 
             # Case: Host name resolves to 0 IP addresses
             mock_host_reset(mock_gethostbyname_ex, [])
