@@ -83,8 +83,6 @@ class Connection:
 
 class Client:
 
-    TIMEOUT_SECONDS = 5
-
     def __init__(
             self,
             host: str,
@@ -92,8 +90,6 @@ class Client:
             pem: str = None,
             channel_options: dict = None,
             loop: asyncio.AbstractEventLoop = None,
-            executor: ThreadPoolExecutor = None,
-            standalone_pool_for_streaming: bool = False,
         ):
         """Constructor.
 
@@ -103,9 +99,6 @@ class Client:
             pem: credentials of grpc
             channel_options: An optional list of key-value pairs (channel args in gRPC runtime)
             loop: asyncio event loop
-            executor: a thread pool, or None to use the default pool of the loop
-            standalone_pool_for_streaming: create a new thread pool (with 1 thread)
-                for each streaming method
         """
         self.addr = f"{host}:{port}"
         self._pem = pem
