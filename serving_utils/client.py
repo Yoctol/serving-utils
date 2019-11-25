@@ -1,11 +1,9 @@
 from functools import partial
 import socket
 from typing import List
-import time
 
 import asyncio
 from collections import namedtuple
-from concurrent.futures import ThreadPoolExecutor
 
 import grpc
 from grpclib.client import Channel
