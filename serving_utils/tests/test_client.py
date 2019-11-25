@@ -227,7 +227,7 @@ async def test_retrying():
                         await client_async_predict(c)
                     except Exception:
                         pass
-                assert m.call_count == n_trys
+                assert m.call_count >= n_trys
 
                 with patch.object(
                         Client,
@@ -239,7 +239,7 @@ async def test_retrying():
                         client_predict(c)
                     except Exception:
                         pass
-                assert m.call_count == n_trys
+                assert m.call_count >= n_trys
 
 
 @pytest.mark.asyncio

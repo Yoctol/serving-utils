@@ -82,6 +82,10 @@ class Connection:
                 raise
 
 
+class EmptyPool(Exception):
+    pass
+
+
 class Client:
 
     def __init__(
@@ -101,7 +105,7 @@ class Client:
         Args:
             host (str) : hostname of your serving
             port (int) : port of your serving
-            n_trys (int) : max number of times to try predict/async_predict
+            n_trys (int) : number of times to try predict/async_predict before giving up
             pem: credentials of grpc
             channel_options: An optional list of key-value pairs (channel args in gRPC runtime)
             loop: asyncio event loop
@@ -190,7 +194,7 @@ class Client:
         try:
             _, conn = next(iter(self._pool))
         except StopIteration:
-            raise Exception("no connections")
+            raise EmptyPool("no connections")
         if is_async_stub:
             return conn.async_stub
         else:
@@ -211,7 +215,13 @@ class Client:
             model_signature_name=model_signature_name,
         )
         for _ in range(self.n_trys):
-            stub = self.get_round_robin_stub(is_async_stub=False)
+
+            try:
+                stub = self.get_round_robin_stub(is_async_stub=False)
+            except EmptyPool:
+                self._setup_connections()
+                continue
+
             try:
                 response = stub.Predict(request)
             except Exception:
@@ -235,7 +245,12 @@ class Client:
             model_signature_name=model_signature_name,
         )
         for _ in range(self.n_trys):
-            stub = self.get_round_robin_stub(is_async_stub=True)
+            try:
+                stub = self.get_round_robin_stub(is_async_stub=True)
+            except EmptyPool:
+                self._setup_connections()
+                continue
+
             try:
                 response = await stub.Predict(request)
             except Exception:
