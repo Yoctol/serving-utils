@@ -91,7 +91,10 @@ class Client:
             channel_options: dict = None,
             loop: asyncio.AbstractEventLoop = None,
         ):
-        """Constructor.
+        """Client to tensorflow_model_server or pyserving
+
+        Includes round-robin load balancing. Separate GRPC connections (channels)
+        will be made to each IP address returned by the name resolution request for `host`.
 
         Args:
             host (str) : hostname of your serving
