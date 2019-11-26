@@ -85,6 +85,7 @@ class Connection:
 class EmptyPool(Exception):
     pass
 
+
 class RetryFailed(Exception):
     pass
 
