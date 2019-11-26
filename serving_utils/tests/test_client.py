@@ -7,7 +7,7 @@ from asynctest import CoroutineMock
 from unittest.mock import patch
 from grpclib.exceptions import GRPCError
 from grpclib.const import Status
-from ..client import Client
+from ..client import Client, RetryFailed
 
 import numpy as np
 from serving_utils import PredictInput
@@ -78,9 +78,6 @@ async def test_load_balancing():
         created_stubs.append(m)
         return m
 
-    def clear_created():
-        created_grpc_channels.clear()
-        created_grpclib_channels.clear()
         created_stubs.clear()
         created_async_stubs.clear()
 
@@ -89,6 +86,13 @@ async def test_load_balancing():
         assert_n_unique_mocks(created_grpclib_channels, 'addr', n)
         assert_n_unique_mocks(created_stubs, 'channel', n)
         assert_n_unique_mocks(created_async_stubs, 'channel', n)
+
+    def clear_created():
+        created_grpc_channels.clear()
+        created_grpclib_channels.clear()
+        created_stubs.clear()
+        created_async_stubs.clear()
+
 
     with patch('socket.gethostbyname_ex') as mock_gethostbyname_ex:
         with patch('serving_utils.client.Channel',
@@ -105,7 +109,7 @@ async def test_load_balancing():
             # Case: Host name resolves to 1 IP address
             mock_gethostbyname_ex.return_value = ('localhost', [], ['1.2.3.4'])
 
-            c = Client(host='localhost', port=9999)
+            c = Client(host='localhost', port=9999, n_trys=1)
             assert_n_connections(1)
 
             created_async_stubs[0].Predict.assert_not_awaited()
@@ -223,10 +227,8 @@ async def test_retrying():
                         wraps=c._setup_connections,
                     ) as m:
 
-                    try:
+                    with pytest.raises(RetryFailed):
                         await client_async_predict(c)
-                    except Exception:
-                        pass
                 assert m.call_count >= n_trys
 
                 with patch.object(
@@ -235,10 +237,8 @@ async def test_retrying():
                         wraps=c._setup_connections,
                     ) as m:
 
-                    try:
+                    with pytest.raises(RetryFailed):
                         client_predict(c)
-                    except Exception:
-                        pass
                 assert m.call_count >= n_trys
 
 
@@ -290,9 +290,19 @@ async def test_server_reset_handling():
     def mock_host_reset(mock_gethostbyname_ex, new_addr_list):
         mock_gethostbyname_ex.side_effect = lambda _: ('localhost', [], new_addr_list.copy())
         for stub in created_stubs:
-            stub.Predict.side_effect = GRPCError(Status.UNAVAILABLE)
+            addr = stub.channel.target.split(':')[0]
+            print(addr)
+            if addr not in new_addr_list:
+                stub.Predict.side_effect = GRPCError(Status.UNAVAILABLE)
+            else:
+                stub.Predict.side_effect = None
         for stub in created_async_stubs:
             stub.Predict.side_effect = GRPCError(Status.UNAVAILABLE)
+            addr = stub.channel.addr
+            if addr not in new_addr_list:
+                stub.Predict.side_effect = GRPCError(Status.UNAVAILABLE)
+            else:
+                stub.Predict.side_effect = None
 
     def assert_n_connections(c, n):
         assert len(c._pool) == n
@@ -312,7 +322,7 @@ async def test_server_reset_handling():
             # Case: Host name resolves to 0 IP addresses
             mock_host_reset(mock_gethostbyname_ex, [])
 
-            c = Client(host='localhost', port=9999)
+            c = Client(host='localhost', port=9999, n_trys=1)
             assert_n_connections(c, 0)
 
             # Case: Host reset, resolves to 1 IP addresses
@@ -346,10 +356,12 @@ async def test_server_reset_handling():
             # Case: Host reset, 1 extra IP added
             mock_host_reset(mock_gethostbyname_ex, ['10.10.10.10', '11.11.11.11', '12.12.12.12'])
             await client_async_predict(c)
+            await client_async_predict(c)
+            await client_async_predict(c)
 
             conns = c._pool._container
-            assert conns['10.10.10.10'].async_stub.Predict.await_count == 3
-            assert conns['11.11.11.11'].async_stub.Predict.await_count == 3
+            assert conns['10.10.10.10'].async_stub.Predict.await_count == 4
+            assert conns['11.11.11.11'].async_stub.Predict.await_count == 4
             assert conns['12.12.12.12'].async_stub.Predict.await_count == 1
 
             # Case: Host reset, 1 IP removed and 2 new IPs added
@@ -359,10 +371,12 @@ async def test_server_reset_handling():
             )
             await client_async_predict(c)
             await client_async_predict(c)
+            await client_async_predict(c)
+            await client_async_predict(c)
 
             conns = c._pool._container
-            assert conns['10.10.10.10'].async_stub.Predict.await_count == 3
-            assert conns['11.11.11.11'].async_stub.Predict.await_count == 3
+            assert conns['10.10.10.10'].async_stub.Predict.await_count == 5
+            assert conns['11.11.11.11'].async_stub.Predict.await_count == 5
             assert conns['13.13.13.13'].async_stub.Predict.await_count == 1
             assert conns['14.14.14.14'].async_stub.Predict.await_count == 1
 

@@ -85,6 +85,9 @@ class Connection:
 class EmptyPool(Exception):
     pass
 
+class RetryFailed(Exception):
+    pass
+
 
 class Client:
 
@@ -139,7 +142,7 @@ class Client:
 
         _, _, current_addrs = socket.gethostbyname_ex(host)
         current_addrs = set(current_addrs)
-        original_addrs = self._pool.keys()
+        original_addrs = set(self._pool.keys())
         if original_addrs == current_addrs:
             return
 
@@ -208,6 +211,8 @@ class Client:
             model_signature_name: str = None,
         ):
 
+        self._setup_connections()
+
         request = self._predict_request(
             data=data,
             output_names=output_names,
@@ -228,6 +233,8 @@ class Client:
                 self._setup_connections()
             else:
                 break
+        else:
+            raise RetryFailed()
         return self.parse_predict_response(response)
 
     async def async_predict(
@@ -237,6 +244,8 @@ class Client:
             model_name: str = 'default',
             model_signature_name: str = None,
         ):
+
+        self._setup_connections()
 
         request = self._predict_request(
             data=data,
@@ -257,5 +266,7 @@ class Client:
                 self._setup_connections()
             else:
                 break
+        else:
+            raise RetryFailed()
 
         return self.parse_predict_response(response)
