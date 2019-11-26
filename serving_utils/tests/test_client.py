@@ -39,8 +39,14 @@ async def client_async_predict(c):
     )
 
 
-@pytest.mark.asyncio
-async def test_load_balancing():
+def assert_n_unique_mocks(mocks, attr, n):
+    assert len(mocks) == n
+    s = set(getattr(m, attr) for m in mocks)
+    print(s)
+    assert len(s) == n
+
+
+def setup_function(f):
 
     created_grpc_channels = []
     created_grpclib_channels = []
@@ -64,22 +70,6 @@ async def test_load_balancing():
         m.target = target
         created_grpc_channels.append(m)
         return m
-
-    def create_a_fake_async_stub(mock_channel):
-        m = mock.MagicMock(name=f"async stub channel={mock_channel}")
-        m.channel = mock_channel
-        m.Predict = CoroutineMock()
-        created_async_stubs.append(m)
-        return m
-
-    def create_a_fake_stub(mock_channel):
-        m = mock.MagicMock(name=f"stub channel={mock_channel}")
-        m.channel = mock_channel
-        created_stubs.append(m)
-        return m
-
-        created_stubs.clear()
-        created_async_stubs.clear()
 
     def assert_n_connections(n):
         assert_n_unique_mocks(created_grpc_channels, 'target', n)
@@ -93,181 +83,6 @@ async def test_load_balancing():
         created_stubs.clear()
         created_async_stubs.clear()
 
-
-    with patch('socket.gethostbyname_ex') as mock_gethostbyname_ex:
-        with patch('serving_utils.client.Channel',
-                   side_effect=create_a_fake_grpclib_channel), \
-            patch('serving_utils.client.grpc.secure_channel',
-                  side_effect=create_a_fake_grpc_channel), \
-            patch('serving_utils.client.grpc.insecure_channel',
-                  side_effect=create_a_fake_grpc_channel), \
-            patch('serving_utils.client.prediction_service_grpc.PredictionServiceStub',
-                  side_effect=create_a_fake_async_stub), \
-            patch('serving_utils.client.prediction_service_pb2_grpc.PredictionServiceStub',
-                  side_effect=create_a_fake_stub):
-
-            # Case: Host name resolves to 1 IP address
-            mock_gethostbyname_ex.return_value = ('localhost', [], ['1.2.3.4'])
-
-            c = Client(host='localhost', port=9999, n_trys=1)
-            assert_n_connections(1)
-
-            created_async_stubs[0].Predict.assert_not_awaited()
-
-            await client_async_predict(c)
-
-            created_async_stubs[0].Predict.assert_awaited()
-
-            # Case: Host name resolves to 2 IP addresses
-            clear_created()
-            mock_gethostbyname_ex.return_value = ('localhost', [], ['1.2.3.4', '5.6.7.8'])
-
-            c = Client(host='localhost', port=9999)
-
-            assert_n_connections(2)
-
-            await client_async_predict(c)
-            await client_async_predict(c)
-
-            created_async_stubs[0].Predict.assert_awaited()
-            created_async_stubs[1].Predict.assert_awaited()
-
-            # Case: Host name resolves to 3 IP address
-            clear_created()
-            mock_gethostbyname_ex.return_value = (
-                'localhost', [], ['1.2.3.4', '5.6.7.8', '9.10.11.12'])
-
-            c = Client(host='localhost', port=9999)
-
-            assert_n_connections(3)
-
-            await client_async_predict(c)
-            await client_async_predict(c)
-            await client_async_predict(c)
-
-            created_async_stubs[0].Predict.assert_awaited()
-            created_async_stubs[1].Predict.assert_awaited()
-            created_async_stubs[2].Predict.assert_awaited()
-
-            client_predict(c)
-            await client_async_predict(c)
-
-            assert created_stubs[0].Predict.call_count == 1
-            assert created_async_stubs[1].Predict.await_count == 2
-
-
-@pytest.mark.asyncio
-async def test_retrying():
-    created_grpc_channels = []
-    created_grpclib_channels = []
-    created_stubs = []
-    created_async_stubs = []
-
-    def maybe_except(request, _):
-        model_name = request.model_spec.name
-        if model_name == 'intentionally_missing_model':
-            pass
-        else:
-            raise Exception()
-
-    def assert_n_unique_mocks(mocks, attr, n):
-        assert len(mocks) == n
-        s = set(getattr(m, attr) for m in mocks)
-        print(s)
-        assert len(s) == n
-
-    def create_a_fake_grpclib_channel(addr, port, loop):
-        m = mock.MagicMock(name=f"{addr}:{port}")
-        m.addr = addr
-        created_grpclib_channels.append(m)
-        return m
-
-    def create_a_fake_grpc_channel(target, *_, **__):
-        m = mock.MagicMock(name=target)
-        m.target = target
-        created_grpc_channels.append(m)
-        return m
-
-    def create_a_fake_async_stub(mock_channel):
-        m = mock.MagicMock(name=f"async stub channel={mock_channel}")
-        m.channel = mock_channel
-        m.Predict = CoroutineMock()
-        m.Predict.side_effect = maybe_except
-        created_async_stubs.append(m)
-        return m
-
-    def create_a_fake_stub(mock_channel):
-        m = mock.MagicMock(name=f"stub channel={mock_channel}")
-        m.channel = mock_channel
-        m.Predict.side_effect = maybe_except
-        created_stubs.append(m)
-        return m
-
-    with patch('socket.gethostbyname_ex') as mock_gethostbyname_ex:
-        with patch('serving_utils.client.Channel',
-                   side_effect=create_a_fake_grpclib_channel), \
-            patch('serving_utils.client.grpc.secure_channel',
-                  side_effect=create_a_fake_grpc_channel), \
-            patch('serving_utils.client.grpc.insecure_channel',
-                  side_effect=create_a_fake_grpc_channel), \
-            patch('serving_utils.client.prediction_service_grpc.PredictionServiceStub',
-                  side_effect=create_a_fake_async_stub), \
-            patch('serving_utils.client.prediction_service_pb2_grpc.PredictionServiceStub',
-                  side_effect=create_a_fake_stub):
-
-            mock_gethostbyname_ex.return_value = ('localhost', [], ['1.2.3.4'])
-
-            for n_trys in range(1, 5):
-
-                c = Client(host='localhost', port=9999, n_trys=n_trys)
-
-                with patch.object(
-                        Client,
-                        '_setup_connections',
-                        wraps=c._setup_connections,
-                    ) as m:
-
-                    with pytest.raises(RetryFailed):
-                        await client_async_predict(c)
-                assert m.call_count >= n_trys
-
-                with patch.object(
-                        Client,
-                        '_setup_connections',
-                        wraps=c._setup_connections,
-                    ) as m:
-
-                    with pytest.raises(RetryFailed):
-                        client_predict(c)
-                assert m.call_count >= n_trys
-
-
-@pytest.mark.asyncio
-async def test_server_reset_handling():
-
-    created_grpc_channels = []
-    created_grpclib_channels = []
-    created_stubs = []
-    created_async_stubs = []
-
-    def assert_n_unique_mocks(mocks, attr, n):
-        assert len(mocks) == n
-        s = set(getattr(m, attr) for m in mocks)
-        print(s)
-        assert len(s) == n
-
-    def create_a_fake_grpclib_channel(addr, port, loop):
-        m = mock.MagicMock(name=f"{addr}:{port}")
-        m.addr = addr
-        created_grpclib_channels.append(m)
-        return m
-
-    def create_a_fake_grpc_channel(target, *_, **__):
-        m = mock.MagicMock(name=target)
-        m.target = target
-        created_grpc_channels.append(m)
-        return m
-
     def create_a_fake_async_stub(mock_channel):
         m = mock.MagicMock(name=f"async stub channel={mock_channel}")
         m.channel = mock_channel
@@ -281,13 +96,7 @@ async def test_server_reset_handling():
         created_stubs.append(m)
         return m
 
-    def clear_created():
-        created_grpc_channels.clear()
-        created_grpclib_channels.clear()
-        created_stubs.clear()
-        created_async_stubs.clear()
-
-    def mock_host_reset(mock_gethostbyname_ex, new_addr_list):
+    def hostname_resolution_change(mock_gethostbyname_ex, new_addr_list):
         mock_gethostbyname_ex.side_effect = lambda _: ('localhost', [], new_addr_list.copy())
         for stub in created_stubs:
             addr = stub.channel.target.split(':')[0]
@@ -304,107 +113,234 @@ async def test_server_reset_handling():
             else:
                 stub.Predict.side_effect = None
 
-    def assert_n_connections(c, n):
+    f.mock_gethostbyname_ex = patch('socket.gethostbyname_ex').start()
+    patch('serving_utils.client.Channel',
+          side_effect=create_a_fake_grpclib_channel).start()
+    patch('serving_utils.client.grpc.secure_channel',
+          side_effect=create_a_fake_grpc_channel).start()
+    patch('serving_utils.client.grpc.insecure_channel',
+          side_effect=create_a_fake_grpc_channel).start()
+    patch('serving_utils.client.prediction_service_grpc.PredictionServiceStub',
+          side_effect=create_a_fake_async_stub).start()
+    patch('serving_utils.client.prediction_service_pb2_grpc.PredictionServiceStub',
+          side_effect=create_a_fake_stub).start()
+
+    f.created_grpc_channels = created_grpc_channels
+    f.created_grpclib_channels = created_grpclib_channels
+    f.created_stubs = created_stubs
+    f.created_async_stubs = created_async_stubs
+
+    f.assert_n_connections = assert_n_connections
+    f.clear_created = clear_created
+    f.hostname_resolution_change = hostname_resolution_change
+
+
+def teardown_function(f):
+    patch.stopall()
+
+
+@pytest.mark.asyncio
+async def test_load_balancing():
+    t = test_load_balancing
+
+    # Case: Host name resolves to 1 IP address
+    t.mock_gethostbyname_ex.return_value = ('localhost', [], ['1.2.3.4'])
+
+    c = Client(host='localhost', port=9999, n_trys=1)
+    t.assert_n_connections(1)
+
+    t.created_async_stubs[0].Predict.assert_not_awaited()
+
+    await client_async_predict(c)
+
+    t.created_async_stubs[0].Predict.assert_awaited()
+
+    # Case: Host name resolves to 2 IP addresses
+    t.clear_created()
+    t.mock_gethostbyname_ex.return_value = ('localhost', [], ['1.2.3.4', '5.6.7.8'])
+
+    c = Client(host='localhost', port=9999)
+
+    t.assert_n_connections(2)
+
+    await client_async_predict(c)
+    await client_async_predict(c)
+
+    t.created_async_stubs[0].Predict.assert_awaited()
+    t.created_async_stubs[1].Predict.assert_awaited()
+
+    # Case: Host name resolves to 3 IP address
+    t.clear_created()
+    t.mock_gethostbyname_ex.return_value = (
+        'localhost', [], ['1.2.3.4', '5.6.7.8', '9.10.11.12'])
+
+    c = Client(host='localhost', port=9999)
+
+    t.assert_n_connections(3)
+
+    await client_async_predict(c)
+    await client_async_predict(c)
+    await client_async_predict(c)
+
+    t.created_async_stubs[0].Predict.assert_awaited()
+    t.created_async_stubs[1].Predict.assert_awaited()
+    t.created_async_stubs[2].Predict.assert_awaited()
+
+    client_predict(c)
+    await client_async_predict(c)
+
+    assert t.created_stubs[0].Predict.call_count == 1
+    assert t.created_async_stubs[1].Predict.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_retrying():
+    t = test_retrying
+
+    t.mock_gethostbyname_ex.return_value = ('localhost', [], ['1.2.3.4'])
+
+    def server_fails_to_Predict_for_model(request, _):
+        model_name = request.model_spec.name
+        if model_name == 'intentionally_missing_model':
+            pass
+        else:
+            raise Exception()
+
+    for n_trys in range(1, 5):
+
+        t.clear_created()
+        c = Client(host='localhost', port=9999, n_trys=n_trys)
+        for stub in t.created_stubs + t.created_async_stubs:
+            stub.Predict.side_effect = server_fails_to_Predict_for_model
+
+        with patch.object(
+                Client,
+                '_setup_connections',
+                wraps=c._setup_connections,
+            ) as mock_setup_connections:
+
+            with pytest.raises(RetryFailed):
+                await client_async_predict(c)
+
+        assert mock_setup_connections.call_count >= n_trys
+
+        total_calls = 0
+        for stub in t.created_async_stubs:
+            total_calls += stub.Predict.call_count
+        assert total_calls == n_trys
+
+        with patch.object(
+                Client,
+                '_setup_connections',
+                wraps=c._setup_connections,
+            ) as mock_setup_connections:
+
+            with pytest.raises(RetryFailed):
+                client_predict(c)
+
+        assert mock_setup_connections.call_count >= n_trys
+        total_calls = 0
+        for stub in t.created_stubs:
+            total_calls += stub.Predict.call_count
+        assert total_calls == n_trys + 1  # plus the health check
+
+
+@pytest.mark.asyncio
+async def test_handle_hostname_resolution_change():
+    t = test_handle_hostname_resolution_change
+
+    def assert_poolsize(c, n):
         assert len(c._pool) == n
 
-    with patch('socket.gethostbyname_ex') as mock_gethostbyname_ex:
-        with patch('serving_utils.client.Channel',
-                   side_effect=create_a_fake_grpclib_channel), \
-            patch('serving_utils.client.grpc.secure_channel',
-                  side_effect=create_a_fake_grpc_channel), \
-            patch('serving_utils.client.grpc.insecure_channel',
-                  side_effect=create_a_fake_grpc_channel), \
-            patch('serving_utils.client.prediction_service_grpc.PredictionServiceStub',
-                  side_effect=create_a_fake_async_stub), \
-            patch('serving_utils.client.prediction_service_pb2_grpc.PredictionServiceStub',
-                  side_effect=create_a_fake_stub):
+    # Case: Host name resolves to 0 IP addresses
+    t.hostname_resolution_change(t.mock_gethostbyname_ex, [])
 
-            # Case: Host name resolves to 0 IP addresses
-            mock_host_reset(mock_gethostbyname_ex, [])
+    c = Client(host='localhost', port=9999, n_trys=1)
+    assert_poolsize(c, 0)
 
-            c = Client(host='localhost', port=9999, n_trys=1)
-            assert_n_connections(c, 0)
+    # Case: Host reset, resolves to 1 IP addresses
+    t.hostname_resolution_change(t.mock_gethostbyname_ex, ['1.2.3.4'])
 
-            # Case: Host reset, resolves to 1 IP addresses
-            mock_host_reset(mock_gethostbyname_ex, ['1.2.3.4'])
+    await client_async_predict(c)
+    assert_poolsize(c, 1)
 
-            await client_async_predict(c)
-            assert_n_connections(c, 1)
+    # Case: Host reset, resolves to 1 different IP address
+    t.hostname_resolution_change(t.mock_gethostbyname_ex, ['5.6.7.8'])
 
-            # Case: Host reset, resolves to 1 different IP address
-            mock_host_reset(mock_gethostbyname_ex, ['5.6.7.8'])
+    await client_async_predict(c)
+    assert_poolsize(c, 1)
 
-            await client_async_predict(c)
-            assert_n_connections(c, 1)
+    # Case: Host reset, resolves to 2 different IP address
+    t.hostname_resolution_change(t.mock_gethostbyname_ex, ['10.10.10.10', '11.11.11.11'])
 
-            # Case: Host reset, resolves to 2 different IP address
-            mock_host_reset(mock_gethostbyname_ex, ['10.10.10.10', '11.11.11.11'])
+    await client_async_predict(c)
+    assert_poolsize(c, 2)
 
-            await client_async_predict(c)
-            assert_n_connections(c, 2)
+    await client_async_predict(c)
+    await client_async_predict(c)
+    await client_async_predict(c)
+    await client_async_predict(c)
+    await client_async_predict(c)
 
-            await client_async_predict(c)
-            await client_async_predict(c)
-            await client_async_predict(c)
-            await client_async_predict(c)
-            await client_async_predict(c)
+    conns = c._pool._container
+    assert conns['10.10.10.10'].async_stub.Predict.await_count == 3
+    assert conns['11.11.11.11'].async_stub.Predict.await_count == 3
 
-            conns = c._pool._container
-            assert conns['10.10.10.10'].async_stub.Predict.await_count == 3
-            assert conns['11.11.11.11'].async_stub.Predict.await_count == 3
+    # Case: Host reset, 1 extra IP added
+    t.hostname_resolution_change(
+        t.mock_gethostbyname_ex,
+        ['10.10.10.10', '11.11.11.11', '12.12.12.12'],
+    )
+    await client_async_predict(c)
+    await client_async_predict(c)
+    await client_async_predict(c)
 
-            # Case: Host reset, 1 extra IP added
-            mock_host_reset(mock_gethostbyname_ex, ['10.10.10.10', '11.11.11.11', '12.12.12.12'])
-            await client_async_predict(c)
-            await client_async_predict(c)
-            await client_async_predict(c)
+    conns = c._pool._container
+    assert conns['10.10.10.10'].async_stub.Predict.await_count == 4
+    assert conns['11.11.11.11'].async_stub.Predict.await_count == 4
+    assert conns['12.12.12.12'].async_stub.Predict.await_count == 1
 
-            conns = c._pool._container
-            assert conns['10.10.10.10'].async_stub.Predict.await_count == 4
-            assert conns['11.11.11.11'].async_stub.Predict.await_count == 4
-            assert conns['12.12.12.12'].async_stub.Predict.await_count == 1
+    # Case: Host reset, 1 IP removed and 2 new IPs added
+    t.hostname_resolution_change(
+        t.mock_gethostbyname_ex,
+        ['10.10.10.10', '11.11.11.11', '13.13.13.13', '14.14.14.14'],
+    )
+    await client_async_predict(c)
+    await client_async_predict(c)
+    await client_async_predict(c)
+    await client_async_predict(c)
 
-            # Case: Host reset, 1 IP removed and 2 new IPs added
-            mock_host_reset(
+    conns = c._pool._container
+    assert conns['10.10.10.10'].async_stub.Predict.await_count == 5
+    assert conns['11.11.11.11'].async_stub.Predict.await_count == 5
+    assert conns['13.13.13.13'].async_stub.Predict.await_count == 1
+    assert conns['14.14.14.14'].async_stub.Predict.await_count == 1
+
+    # Fuzz test
+    # Randomly reset host a number of times
+    # Testing that old conns are never used, if they are used an exception
+    # will be raised
+    async def loop_calling_async_predict(client):
+        while True:
+            n = random.randint(1, 5)
+            await aio.gather(*[client_async_predict(client) for _ in range(n)])
+            await aio.sleep(random.random())
+
+    async def loop_host_reset(client, mock_gethostbyname_ex):
+        while True:
+            t.hostname_resolution_change(
                 mock_gethostbyname_ex,
-                ['10.10.10.10', '11.11.11.11', '13.13.13.13', '14.14.14.14'],
+                [str(random.randint(0, 1000)) for _ in range(random.randint(1, 5))],
             )
-            await client_async_predict(c)
-            await client_async_predict(c)
-            await client_async_predict(c)
-            await client_async_predict(c)
+            await aio.sleep(random.random() + 0.5)
 
-            conns = c._pool._container
-            assert conns['10.10.10.10'].async_stub.Predict.await_count == 5
-            assert conns['11.11.11.11'].async_stub.Predict.await_count == 5
-            assert conns['13.13.13.13'].async_stub.Predict.await_count == 1
-            assert conns['14.14.14.14'].async_stub.Predict.await_count == 1
-
-            # Fuzz test
-            # Randomly reset host a number of times
-            # Testing that old conns are never used, if they are used an exception
-            # will be raised
-            async def loop_calling_async_predict(client):
-                while True:
-                    n = random.randint(1, 5)
-                    await aio.gather(*[client_async_predict(client) for _ in range(n)])
-                    await aio.sleep(random.random())
-
-            async def loop_host_reset(client, mock_gethostbyname_ex):
-                while True:
-                    mock_host_reset(
-                        mock_gethostbyname_ex,
-                        [str(random.randint(0, 1000)) for _ in range(random.randint(1, 5))],
-                    )
-                    await aio.sleep(random.random() + 0.5)
-
-            t = aio.ensure_future(aio.gather(
-                loop_calling_async_predict(c),
-                loop_host_reset(c, mock_gethostbyname_ex),
-            ))
-            await aio.sleep(3)
-            t.cancel()
-            try:
-                await t
-            except aio.CancelledError:
-                pass
+    task = aio.ensure_future(aio.gather(
+        loop_calling_async_predict(c),
+        loop_host_reset(c, t.mock_gethostbyname_ex),
+    ))
+    await aio.sleep(3)
+    task.cancel()
+    try:
+        await task
+    except aio.CancelledError:
+        pass
