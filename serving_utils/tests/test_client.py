@@ -181,16 +181,12 @@ async def test_load_balancing():
     await client_async_predict(c)
     await client_async_predict(c)
     await client_async_predict(c)
-
-    t.created_async_stubs[0].Predict.assert_awaited()
-    t.created_async_stubs[1].Predict.assert_awaited()
-    t.created_async_stubs[2].Predict.assert_awaited()
-
     client_predict(c)
-    await client_async_predict(c)
+    client_predict(c)
+    client_predict(c)
 
-    assert t.created_stubs[0].Predict.call_count == 1
-    assert t.created_async_stubs[1].Predict.await_count == 2
+    for stub in t.created_async_stubs + t.created_stubs:
+        assert stub.Predict.call_count == 1
 
 
 @pytest.mark.asyncio
@@ -202,11 +198,7 @@ async def test_retrying():
     expected_exception = Exception("I'm sorry. I can't do that")
 
     def server_fails_to_Predict_for_model(request):
-        model_name = request.model_spec.name
-        if model_name == 'intentionally_missing_model':
-            pass
-        else:
-            raise expected_exception
+        raise expected_exception
 
     for n_trys in range(1, 5):
 
@@ -249,7 +241,7 @@ async def test_retrying():
         total_calls = 0
         for stub in t.created_stubs:
             total_calls += stub.Predict.call_count
-        assert total_calls == n_trys + 1  # plus the health check
+        assert total_calls == n_trys
 
 
 @pytest.mark.asyncio
