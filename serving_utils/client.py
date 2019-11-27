@@ -1,4 +1,5 @@
 from functools import partial
+import logging
 import socket
 from typing import List
 
@@ -13,6 +14,9 @@ from .round_robin_map import RoundRobinMap
 
 from .protos import predict_pb2, prediction_service_pb2_grpc, list_models_pb2, list_models_pb2_grpc
 from .protos import prediction_service_grpc
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 def copy_message(src, dst):
@@ -100,6 +104,7 @@ class Client:
             pem: str = None,
             channel_options: dict = None,
             loop: asyncio.AbstractEventLoop = None,
+            logger: logging.Logger = None,
         ):
         """Client to tensorflow_model_server or pyserving
 
@@ -137,6 +142,8 @@ class Client:
 
         self._setup_connections()
         self.n_trys = n_trys
+
+        self.logger = logger or LOGGER
 
     def _setup_connections(self):
         host = self._host
@@ -226,8 +233,10 @@ class Client:
                 stub = self.get_round_robin_stub(is_async_stub=False)
                 response = stub.Predict(request)
             except EmptyPool:
+                self.logger.warning("serving_utils.Client -- empty pool")
                 self._setup_connections()
-            except Exception:
+            except Exception as e:
+                self.logger.exception(e)
                 self._setup_connections()
             else:
                 break
@@ -257,8 +266,10 @@ class Client:
                 stub = self.get_round_robin_stub(is_async_stub=True)
                 response = await stub.Predict(request)
             except EmptyPool:
+                self.logger.warning("serving_utils.Client -- empty pool")
                 self._setup_connections()
-            except Exception:
+            except Exception as e:
+                self.logger.exception(e)
                 self._setup_connections()
             else:
                 break

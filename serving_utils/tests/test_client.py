@@ -199,17 +199,20 @@ async def test_retrying():
 
     t.mock_gethostbyname_ex.return_value = ('localhost', [], ['1.2.3.4'])
 
-    def server_fails_to_Predict_for_model(request, _):
+    expected_exception = Exception("I'm sorry. I can't do that")
+
+    def server_fails_to_Predict_for_model(request):
         model_name = request.model_spec.name
         if model_name == 'intentionally_missing_model':
             pass
         else:
-            raise Exception()
+            raise expected_exception
 
     for n_trys in range(1, 5):
 
         t.clear_created()
-        c = Client(host='localhost', port=9999, n_trys=n_trys)
+        mock_logger = mock.Mock()
+        c = Client(host='localhost', port=9999, n_trys=n_trys, logger=mock_logger)
         for stub in t.created_stubs + t.created_async_stubs:
             stub.Predict.side_effect = server_fails_to_Predict_for_model
 
@@ -223,12 +226,14 @@ async def test_retrying():
                 await client_async_predict(c)
 
         assert mock_setup_connections.call_count >= n_trys
+        mock_logger.exception.assert_called_with(expected_exception)
 
         total_calls = 0
         for stub in t.created_async_stubs:
             total_calls += stub.Predict.call_count
         assert total_calls == n_trys
 
+        mock_logger.reset_mock()
         with patch.object(
                 Client,
                 '_setup_connections',
@@ -239,6 +244,8 @@ async def test_retrying():
                 client_predict(c)
 
         assert mock_setup_connections.call_count >= n_trys
+        mock_logger.exception.assert_called_with(expected_exception)
+
         total_calls = 0
         for stub in t.created_stubs:
             total_calls += stub.Predict.call_count
