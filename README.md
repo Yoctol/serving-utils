@@ -63,7 +63,7 @@ loader.load(new_sess)  # load the saved model into new session
 ```python
 from serving_utils import Client, PredictInput
 
-client = Client(addr="localhost:8500")
+client = Client(host="localhost", port=8500, n_trys=3)
 client.predict(
     [PredictInput(name='input', value=np.ones(1, 10))],
     output_names=['output'],
@@ -80,11 +80,6 @@ from serving_utils.freeze_graph import freeze_graph, create_session_from_graphde
 
 frozen_graph_def = freeze_graph(session, output_op_names)
 new_session = create_session_from_graphdef(frozen_graph_def)
-```
-
-4. Loader
-```python
-
 ```
 
 
