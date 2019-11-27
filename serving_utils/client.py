@@ -119,7 +119,6 @@ class Client:
             channel_options: An optional list of key-value pairs (channel args in gRPC runtime)
             loop: asyncio event loop
         """
-        self.addr = f"{host}:{port}"
         self._pem = pem
         if channel_options is None:
             channel_options = {}
