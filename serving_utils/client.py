@@ -69,22 +69,6 @@ class Connection:
         self.sync_stub = prediction_service_pb2_grpc.PredictionServiceStub(self.sync_channel)
         self.async_stub = prediction_service_grpc.PredictionServiceStub(self.async_channel)
 
-        req = predict_pb2.PredictRequest()
-        req.model_spec.name = 'intentionally_missing_model'
-
-        try:
-            self.sync_stub.Predict(req, Connection.TIMEOUT_SECONDS)
-        except Exception as e:
-            try:
-                _code = e._state.code
-            except AttributeError:
-                raise e
-
-            if _code == grpc.StatusCode.NOT_FOUND:
-                pass
-            else:
-                raise
-
 
 class EmptyPool(Exception):
     pass
