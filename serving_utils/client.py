@@ -224,12 +224,9 @@ class Client:
 
             try:
                 stub = self.get_round_robin_stub(is_async_stub=False)
+                response = stub.Predict(request)
             except EmptyPool:
                 self._setup_connections()
-                continue
-
-            try:
-                response = stub.Predict(request)
             except Exception:
                 self._setup_connections()
             else:
@@ -255,14 +252,12 @@ class Client:
             model_signature_name=model_signature_name,
         )
         for _ in range(self.n_trys):
-            try:
-                stub = self.get_round_robin_stub(is_async_stub=True)
-            except EmptyPool:
-                self._setup_connections()
-                continue
 
             try:
+                stub = self.get_round_robin_stub(is_async_stub=True)
                 response = await stub.Predict(request)
+            except EmptyPool:
+                self._setup_connections()
             except Exception:
                 self._setup_connections()
             else:
