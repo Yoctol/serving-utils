@@ -4,12 +4,13 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-serving-utils = {editable = true, path = "."}
+serving-utils = {editable = true,path = "."}
 
 [dev-packages]
 pytest = "*"
 "flake8-config-yoctol" = ">=0.0.11"
 pytest-asyncio = "*"
+asynctest = "*"
 
 [requires]
 python_version = "3.6"
