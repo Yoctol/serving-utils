@@ -82,11 +82,6 @@ frozen_graph_def = freeze_graph(session, output_op_names)
 new_session = create_session_from_graphdef(frozen_graph_def)
 ```
 
-4. Loader
-```python
-
-```
-
 
 ## Test
 
