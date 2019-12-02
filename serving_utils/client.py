@@ -180,7 +180,11 @@ class Client:
         return results
 
     def list_models(self):
-        stub = list_models_pb2_grpc.ListModelsStub(self._channel)
+        try:
+            _, conn = next(iter(self._pool))
+        except StopIteration:
+            raise EmptyPool("no connections")
+        stub = list_models_pb2_grpc.ListModelsStub(conn.sync_channel)
         response = stub.ListModels(list_models_pb2.ListModelsRequest())
         return response.models
 
