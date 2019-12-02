@@ -4,7 +4,6 @@ import collections
 class RoundRobinMap(collections.abc.MutableMapping):
 
     def __init__(self):
-        self._list = []
         self._container = collections.OrderedDict()
 
     def __delitem__(self, k):
