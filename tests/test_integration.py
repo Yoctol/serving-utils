@@ -3,6 +3,7 @@
 import time
 import pytest
 
+import grpc
 import numpy as np
 from serving_utils import Client, PredictInput
 
@@ -32,8 +33,7 @@ async def test_client():
                 continue
         else:
             break
-    # test client predict correct result
-    # fake model is generated from `train_for_test.py`
+
     clients = []
     for serving_port in test_serving_ports:
         clients.append(Client(
@@ -41,12 +41,21 @@ async def test_client():
             port=serving_port,
         ))
 
+    # fake model is generated from `train_for_test.py`
+    model_name = 'test_model'
+
+    # test client list_models
+    for client in clients:
+        with pytest.raises(grpc.RpcError) as e:
+            client.list_models()
+            assert e.code() == grpc.StatusCode.UNIMPLEMENTED
+
+    # test client predict correct result
     req_data = [
         PredictInput(name='a', value=np.int16(2)),
         PredictInput(name='b', value=np.int16(3)),
     ]
     output_names = ['c']
-    model_name = 'test_model'
     expected_output = {'c': 8}  # c = a + 2 * b
     for client in clients:
         actual_output = client.predict(
