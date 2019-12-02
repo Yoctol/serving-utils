@@ -1,4 +1,4 @@
-# serving-utils
+# serving-utils (test)
 
 [![travis][travis-image]][travis-url]
 [![pypi][pypi-image]][pypi-url]
