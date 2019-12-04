@@ -8,6 +8,8 @@ from collections import namedtuple
 
 import grpc
 from grpclib.client import Channel
+from grpclib.exceptions import GRPCError
+from grpclib.const import Status
 import tensorflow as tf
 
 from .round_robin_map import RoundRobinMap
@@ -218,6 +220,11 @@ class Client:
             except EmptyPool:
                 self.logger.warning("serving_utils.Client -- empty pool")
                 self._setup_connections()
+            except grpc.RpcError as e:
+                if e.code() == grpc.StatusCode.NOT_FOUND and "Model" in e.details():
+                    raise
+                self.logger.exception(e)
+                self._setup_connections()
             except Exception as e:
                 self.logger.exception(e)
                 self._setup_connections()
@@ -250,6 +257,11 @@ class Client:
                 response = await stub.Predict(request)
             except EmptyPool:
                 self.logger.warning("serving_utils.Client -- empty pool")
+                self._setup_connections()
+            except GRPCError as e:
+                if e.status == Status.NOT_FOUND and "Model" in e.message:  # noqao: B306
+                    raise
+                self.logger.exception(e)
                 self._setup_connections()
             except Exception as e:
                 self.logger.exception(e)

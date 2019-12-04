@@ -190,6 +190,55 @@ async def test_load_balancing():
 
 
 @pytest.mark.asyncio
+async def test_model_not_found():
+    from grpclib.exceptions import GRPCError
+    from grpclib.const import Status
+    import grpc
+    import grpc._channel
+
+    t = test_model_not_found
+
+    t.mock_gethostbyname_ex.return_value = ('localhost', [], ['1.2.3.4'])
+
+    # pyserving will send this kind of error when there is no such model
+    expected_exception = GRPCError(Status.NOT_FOUND, message="Model XXX not found")
+
+    def server_fails_to_Predict_because_model_doesnt_exist(request):
+        raise expected_exception
+
+    mock_logger = mock.Mock()
+    c = Client(host='localhost', port=9999, n_trys=1, logger=mock_logger)
+    for stub in t.created_stubs + t.created_async_stubs:
+        stub.Predict.side_effect = server_fails_to_Predict_because_model_doesnt_exist
+
+    try:
+        await client_async_predict(c)
+    except Exception as e:
+        assert e == expected_exception
+
+    # also test the sync version
+    rpc_state = grpc._channel._RPCState(
+        grpc._channel._UNARY_UNARY_INITIAL_DUE, None, None, None, None)
+    rpc_state.code = grpc.StatusCode.NOT_FOUND
+    rpc_state.details = "Model XXX not found"
+    expected_exception = grpc._channel._Rendezvous(rpc_state, None, None, None)
+    assert isinstance(expected_exception, grpc.RpcError)
+
+    def server_fails_to_Predict_because_model_doesnt_exist(request):
+        raise expected_exception
+
+    mock_logger = mock.Mock()
+    c = Client(host='localhost', port=9999, n_trys=1, logger=mock_logger)
+    for stub in t.created_stubs + t.created_async_stubs:
+        stub.Predict.side_effect = server_fails_to_Predict_because_model_doesnt_exist
+
+    try:
+        client_predict(c)
+    except Exception as e:
+        assert e == expected_exception
+
+
+@pytest.mark.asyncio
 async def test_retrying():
     t = test_retrying
 
