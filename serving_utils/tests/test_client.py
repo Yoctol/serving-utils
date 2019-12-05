@@ -8,8 +8,6 @@ from unittest.mock import patch
 import grpc
 import grpc._channel
 import grpclib
-from grpclib.exceptions import GRPCError
-from grpclib.const import Status
 from ..client import Client, RetryFailed
 
 import numpy as np
@@ -103,16 +101,14 @@ def setup_function(f):
         mock_gethostbyname_ex.side_effect = lambda _: ('localhost', [], new_addr_list.copy())
         for stub in created_stubs:
             addr = stub.channel.target.split(':')[0]
-            print(addr)
             if addr not in new_addr_list:
-                stub.Predict.side_effect = GRPCError(Status.UNAVAILABLE)
+                stub.Predict.side_effect = create_grpc_error("UNAVAILABLE", "", sync=True)
             else:
                 stub.Predict.side_effect = None
         for stub in created_async_stubs:
-            stub.Predict.side_effect = GRPCError(Status.UNAVAILABLE)
             addr = stub.channel.addr
             if addr not in new_addr_list:
-                stub.Predict.side_effect = GRPCError(Status.UNAVAILABLE)
+                stub.Predict.side_effect = create_grpc_error("UNAVAILABLE", "", sync=False)
             else:
                 stub.Predict.side_effect = None
 
@@ -205,7 +201,7 @@ def create_grpc_error(status, message, *, sync):
         # Create grpc.RpcError
         # https://github.com/grpc/grpc/blob/c1d176528fd8da9dd4066d16554bcd216d29033f/src/python/grpcio/grpc/_channel.py#L592
         status = grpclib.const.Status[status]
-        return GRPCError(status, message=message)
+        return grpclib.exceptions.GRPCError(status, message=message)
 
 
 @pytest.mark.asyncio
