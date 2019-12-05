@@ -5,8 +5,9 @@ import pytest
 from unittest import mock
 from asynctest import CoroutineMock
 from unittest.mock import patch
-from grpclib.exceptions import GRPCError
-from grpclib.const import Status
+import grpc
+import grpc._channel
+import grpclib
 from ..client import Client, RetryFailed
 
 import numpy as np
@@ -100,16 +101,14 @@ def setup_function(f):
         mock_gethostbyname_ex.side_effect = lambda _: ('localhost', [], new_addr_list.copy())
         for stub in created_stubs:
             addr = stub.channel.target.split(':')[0]
-            print(addr)
             if addr not in new_addr_list:
-                stub.Predict.side_effect = GRPCError(Status.UNAVAILABLE)
+                stub.Predict.side_effect = create_grpc_error("UNAVAILABLE", "", sync=True)
             else:
                 stub.Predict.side_effect = None
         for stub in created_async_stubs:
-            stub.Predict.side_effect = GRPCError(Status.UNAVAILABLE)
             addr = stub.channel.addr
             if addr not in new_addr_list:
-                stub.Predict.side_effect = GRPCError(Status.UNAVAILABLE)
+                stub.Predict.side_effect = create_grpc_error("UNAVAILABLE", "", sync=False)
             else:
                 stub.Predict.side_effect = None
 
@@ -187,6 +186,71 @@ async def test_load_balancing():
 
     for stub in t.created_async_stubs + t.created_stubs:
         assert stub.Predict.call_count == 1
+
+
+def create_grpc_error(status, message, *, sync):
+    if sync:
+        status = grpc.StatusCode[status]
+
+        rpc_state = grpc._channel._RPCState(
+            grpc._channel._UNARY_UNARY_INITIAL_DUE, None, None, None, None)
+        rpc_state.code = status
+        rpc_state.details = message
+        return grpc._channel._Rendezvous(rpc_state, None, None, None)
+    else:
+        # Create grpc.RpcError
+        # https://github.com/grpc/grpc/blob/c1d176528fd8da9dd4066d16554bcd216d29033f/src/python/grpcio/grpc/_channel.py#L592
+        status = grpclib.const.Status[status]
+        return grpclib.exceptions.GRPCError(status, message=message)
+
+
+@pytest.mark.asyncio
+async def test_model_not_found_error_passes_through_async_predict():
+
+    t = test_model_not_found_error_passes_through_async_predict
+    t.mock_gethostbyname_ex.return_value = ('localhost', [], ['1.2.3.4'])
+
+    # pyserving will send this kind of error when there is no such model
+    expected_exception = create_grpc_error("NOT_FOUND", "Model XXX not found", sync=False)
+
+    def server_fails_to_Predict_because_model_doesnt_exist(request):
+        raise expected_exception
+
+    mock_logger = mock.Mock()
+    c = Client(host='localhost', port=9999, n_trys=1, logger=mock_logger)
+    for stub in t.created_stubs + t.created_async_stubs:
+        stub.Predict.side_effect = server_fails_to_Predict_because_model_doesnt_exist
+
+    with pytest.raises(grpclib.exceptions.GRPCError) as exc_info:
+        await client_async_predict(c)
+
+    assert exc_info.value.status == grpclib.const.Status.NOT_FOUND
+    assert exc_info.value.message == "Model XXX not found"
+
+
+@pytest.mark.asyncio
+async def test_model_not_found_error_passes_through_sync_predict():
+
+    t = test_model_not_found_error_passes_through_sync_predict
+    t.mock_gethostbyname_ex.return_value = ('localhost', [], ['1.2.3.4'])
+
+    # pyserving will send this kind of error when there is no such model
+    expected_exception = create_grpc_error("NOT_FOUND", "Model XXX not found", sync=True)
+    assert isinstance(expected_exception, grpc.RpcError)
+
+    def server_fails_to_Predict_because_model_doesnt_exist(request):
+        raise expected_exception
+
+    mock_logger = mock.Mock()
+    c = Client(host='localhost', port=9999, n_trys=1, logger=mock_logger)
+    for stub in t.created_stubs + t.created_async_stubs:
+        stub.Predict.side_effect = server_fails_to_Predict_because_model_doesnt_exist
+
+    with pytest.raises(grpc.RpcError) as exc_info:
+        client_predict(c)
+
+    assert exc_info.value.code() == grpc.StatusCode.NOT_FOUND
+    assert exc_info.value.details() == "Model XXX not found"
 
 
 @pytest.mark.asyncio
