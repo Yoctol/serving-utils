@@ -218,7 +218,7 @@ async def test_model_not_found_error_passes_through_async_predict():
 
     mock_logger = mock.Mock()
     c = Client(host='localhost', port=9999, n_trys=1, logger=mock_logger)
-    for stub in t.created_stubs + t.created_async_stubs:
+    for stub in t.created_async_stubs:
         stub.Predict.side_effect = server_fails_to_Predict_because_model_doesnt_exist
 
     with pytest.raises(grpclib.exceptions.GRPCError) as exc_info:
@@ -243,7 +243,7 @@ async def test_model_not_found_error_passes_through_sync_predict():
 
     mock_logger = mock.Mock()
     c = Client(host='localhost', port=9999, n_trys=1, logger=mock_logger)
-    for stub in t.created_stubs + t.created_async_stubs:
+    for stub in t.created_stubs:
         stub.Predict.side_effect = server_fails_to_Predict_because_model_doesnt_exist
 
     with pytest.raises(grpc.RpcError) as exc_info:
