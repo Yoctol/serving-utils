@@ -5,6 +5,9 @@ import pytest
 from unittest import mock
 from asynctest import CoroutineMock
 from unittest.mock import patch
+import grpc
+import grpc._channel
+import grpclib
 from grpclib.exceptions import GRPCError
 from grpclib.const import Status
 from ..client import Client, RetryFailed
@@ -189,19 +192,31 @@ async def test_load_balancing():
         assert stub.Predict.call_count == 1
 
 
-@pytest.mark.asyncio
-async def test_model_not_found():
-    from grpclib.exceptions import GRPCError
-    from grpclib.const import Status
-    import grpc
-    import grpc._channel
+def create_grpc_error(status, message, *, sync):
+    if sync:
+        status = grpc.StatusCode[status]
 
-    t = test_model_not_found
+        rpc_state = grpc._channel._RPCState(
+            grpc._channel._UNARY_UNARY_INITIAL_DUE, None, None, None, None)
+        rpc_state.code = status
+        rpc_state.details = message
+        return grpc._channel._Rendezvous(rpc_state, None, None, None)
+    else:
+        # Create grpc.RpcError
+        # https://github.com/grpc/grpc/blob/c1d176528fd8da9dd4066d16554bcd216d29033f/src/python/grpcio/grpc/_channel.py#L592
+        status = grpclib.const.Status[status]
+        return GRPCError(status, message=message)
+
+
+@pytest.mark.asyncio
+async def test_model_not_found_async():
+
+    t = test_model_not_found_async
 
     t.mock_gethostbyname_ex.return_value = ('localhost', [], ['1.2.3.4'])
 
     # pyserving will send this kind of error when there is no such model
-    expected_exception = GRPCError(Status.NOT_FOUND, message="Model XXX not found")
+    expected_exception = create_grpc_error("NOT_FOUND", "Model XXX not found", sync=False)
 
     def server_fails_to_Predict_because_model_doesnt_exist(request):
         raise expected_exception
@@ -216,12 +231,15 @@ async def test_model_not_found():
     except Exception as e:
         assert e == expected_exception
 
-    # also test the sync version
-    rpc_state = grpc._channel._RPCState(
-        grpc._channel._UNARY_UNARY_INITIAL_DUE, None, None, None, None)
-    rpc_state.code = grpc.StatusCode.NOT_FOUND
-    rpc_state.details = "Model XXX not found"
-    expected_exception = grpc._channel._Rendezvous(rpc_state, None, None, None)
+
+@pytest.mark.asyncio
+async def test_model_not_found_sync():
+    t = test_model_not_found_sync
+
+    t.mock_gethostbyname_ex.return_value = ('localhost', [], ['1.2.3.4'])
+
+    # pyserving will send this kind of error when there is no such model
+    expected_exception = create_grpc_error("NOT_FOUND", "Model XXX not found", sync=True)
     assert isinstance(expected_exception, grpc.RpcError)
 
     def server_fails_to_Predict_because_model_doesnt_exist(request):
