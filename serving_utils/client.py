@@ -259,6 +259,8 @@ class Client:
             try:
                 stub = self.get_round_robin_stub(is_async_stub=True)
                 response = await stub.Predict(request)
+            except asyncio.CancelledError:
+                raise
             except EmptyPool:
                 self.logger.warning("serving_utils.Client -- empty pool")
                 self._setup_connections()
