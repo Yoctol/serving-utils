@@ -205,10 +205,9 @@ def create_grpc_error(status, message, *, sync):
 
 
 @pytest.mark.asyncio
-async def test_model_not_found_async():
+async def test_model_not_found_error_passes_through_async_predict():
 
-    t = test_model_not_found_async
-
+    t = test_model_not_found_error_passes_through_async_predict
     t.mock_gethostbyname_ex.return_value = ('localhost', [], ['1.2.3.4'])
 
     # pyserving will send this kind of error when there is no such model
@@ -222,16 +221,17 @@ async def test_model_not_found_async():
     for stub in t.created_stubs + t.created_async_stubs:
         stub.Predict.side_effect = server_fails_to_Predict_because_model_doesnt_exist
 
-    try:
+    with pytest.raises(grpclib.exceptions.GRPCError) as exc_info:
         await client_async_predict(c)
-    except Exception as e:
-        assert e == expected_exception
+
+    assert exc_info.value.status == grpclib.const.Status.NOT_FOUND
+    assert exc_info.value.message == "Model XXX not found"
 
 
 @pytest.mark.asyncio
-async def test_model_not_found_sync():
-    t = test_model_not_found_sync
+async def test_model_not_found_error_passes_through_sync_predict():
 
+    t = test_model_not_found_error_passes_through_sync_predict
     t.mock_gethostbyname_ex.return_value = ('localhost', [], ['1.2.3.4'])
 
     # pyserving will send this kind of error when there is no such model
@@ -246,10 +246,11 @@ async def test_model_not_found_sync():
     for stub in t.created_stubs + t.created_async_stubs:
         stub.Predict.side_effect = server_fails_to_Predict_because_model_doesnt_exist
 
-    try:
+    with pytest.raises(grpc.RpcError) as exc_info:
         client_predict(c)
-    except Exception as e:
-        assert e == expected_exception
+
+    assert exc_info.value.code() == grpc.StatusCode.NOT_FOUND
+    assert exc_info.value.details() == "Model XXX not found"
 
 
 @pytest.mark.asyncio
