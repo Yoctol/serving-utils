@@ -229,6 +229,20 @@ async def test_model_not_found_error_passes_through_async_predict():
 
 
 @pytest.mark.asyncio
+async def test_asyncio_cancel_during_async_predict():
+    t = test_asyncio_cancel_during_async_predict
+    t.mock_gethostbyname_ex.return_value = ('localhost', [], ['1.2.3.4'])
+
+    mock_logger = mock.Mock()
+    c = Client(host='localhost', port=9999, n_trys=1, logger=mock_logger)
+    for stub in t.created_async_stubs:
+        stub.Predict.side_effect = aio.CancelledError()
+
+    with pytest.raises(aio.CancelledError):
+        await client_async_predict(c)
+
+
+@pytest.mark.asyncio
 async def test_model_not_found_error_passes_through_sync_predict():
 
     t = test_model_not_found_error_passes_through_sync_predict
