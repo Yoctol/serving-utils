@@ -242,6 +242,21 @@ async def test_asyncio_cancel_during_async_predict():
         await client_async_predict(c)
 
 
+def test_RetryFailed():
+    e1 = Exception("abc")
+    e2 = Exception("xyz")
+    e3 = create_grpc_error("UNKNOWN", "wtf", sync=False)
+    e4 = create_grpc_error("ABORTED", "wtf", sync=True)
+
+    retry_error = RetryFailed(message="my message", errors=[e1, e2, e3, e4])
+
+    assert 'my message' in str(retry_error)
+    assert 'abc' in str(retry_error)
+    assert 'xyz' in str(retry_error)
+    assert "ABORTED" in str(retry_error)
+    assert "UNKNOWN" in str(retry_error)
+
+
 @pytest.mark.asyncio
 async def test_model_not_found_error_passes_through_sync_predict():
 
@@ -273,10 +288,9 @@ async def test_retrying():
 
     t.mock_gethostbyname_ex.return_value = ('localhost', [], ['1.2.3.4'])
 
-    expected_exception = Exception("I'm sorry. I can't do that")
-
-    def server_fails_to_Predict_for_model(request):
-        raise expected_exception
+    exceptions_for_Predict = [
+        Exception(f"{i}. I'm sorry. I can't do that") for i in range(5)
+    ]
 
     for n_trys in range(1, 5):
 
@@ -284,7 +298,7 @@ async def test_retrying():
         mock_logger = mock.Mock()
         c = Client(host='localhost', port=9999, n_trys=n_trys, logger=mock_logger)
         for stub in t.created_stubs + t.created_async_stubs:
-            stub.Predict.side_effect = server_fails_to_Predict_for_model
+            stub.Predict.side_effect = exceptions_for_Predict
 
         with patch.object(
                 Client,
@@ -292,11 +306,14 @@ async def test_retrying():
                 wraps=c._setup_connections,
             ) as mock_setup_connections:
 
-            with pytest.raises(RetryFailed):
+            with pytest.raises(RetryFailed) as exc_info:
                 await client_async_predict(c)
+            e = exc_info.value
+            assert e.errors == exceptions_for_Predict[:n_trys]
 
         assert mock_setup_connections.call_count >= n_trys
-        mock_logger.exception.assert_called_with(expected_exception)
+        mock_logger.exception.assert_has_calls(
+            [mock.call(e) for e in exceptions_for_Predict[:n_trys]])
 
         total_calls = 0
         for stub in t.created_async_stubs:
@@ -312,9 +329,12 @@ async def test_retrying():
 
             with pytest.raises(RetryFailed):
                 client_predict(c)
+            e = exc_info.value
+            assert e.errors == exceptions_for_Predict[:n_trys]
 
         assert mock_setup_connections.call_count >= n_trys
-        mock_logger.exception.assert_called_with(expected_exception)
+        mock_logger.exception.assert_has_calls(
+            [mock.call(e) for e in exceptions_for_Predict[:n_trys]])
 
         total_calls = 0
         for stub in t.created_stubs:
