@@ -77,7 +77,18 @@ class EmptyPool(Exception):
 
 
 class RetryFailed(Exception):
-    pass
+
+    def __init__(self, message, errors):
+        super().__init__(message)
+        self.errors = errors
+
+    def __str__(self):
+        error_msgs = []
+        for (i, e) in enumerate(self.errors, 1):
+            error_msgs.append(f"Error {i}")
+            error_msgs.append("\t" + "\t\n".join(repr(e).split("\n")))
+
+        return super().__repr__() + '\n' + '\n'.join(error_msgs)
 
 
 class Client:
@@ -216,26 +227,30 @@ class Client:
             model_name=model_name,
             model_signature_name=model_signature_name,
         )
+        errors = []
         for _ in range(self.n_trys):
 
             try:
                 stub = self.get_round_robin_stub(is_async_stub=False)
                 response = stub.Predict(request)
-            except EmptyPool:
+            except EmptyPool as e:
                 self.logger.warning("serving_utils.Client -- empty pool")
                 self._setup_connections()
+                errors.append(e)
             except grpc.RpcError as e:
                 if e.code() == grpc.StatusCode.NOT_FOUND and "Model" in e.details():
                     raise
                 self.logger.exception(e)
                 self._setup_connections()
+                errors.append(e)
             except Exception as e:
                 self.logger.exception(e)
                 self._setup_connections()
+                errors.append(e)
             else:
                 break
         else:
-            raise RetryFailed()
+            raise RetryFailed(f"Failed after {self.n_trys} tries", errors=errors)
         return self.parse_predict_response(response)
 
     async def async_predict(
@@ -254,6 +269,7 @@ class Client:
             model_name=model_name,
             model_signature_name=model_signature_name,
         )
+        errors = []
         for _ in range(self.n_trys):
 
             try:
@@ -261,20 +277,23 @@ class Client:
                 response = await stub.Predict(request)
             except asyncio.CancelledError:
                 raise
-            except EmptyPool:
+            except EmptyPool as e:
                 self.logger.warning("serving_utils.Client -- empty pool")
                 self._setup_connections()
+                errors.append(e)
             except GRPCError as e:
                 if e.status == Status.NOT_FOUND and "Model" in e.message:  # noqao: B306
                     raise
                 self.logger.exception(e)
                 self._setup_connections()
+                errors.append(e)
             except Exception as e:
                 self.logger.exception(e)
                 self._setup_connections()
+                errors.append(e)
             else:
                 break
         else:
-            raise RetryFailed()
+            raise RetryFailed(f"Failed after {self.n_trys} tries", errors=errors)
 
         return self.parse_predict_response(response)
