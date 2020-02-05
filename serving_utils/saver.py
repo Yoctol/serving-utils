@@ -1,6 +1,6 @@
 from typing import Dict
 import pathlib
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from .freeze_graph import freeze_graph, create_session_from_graphdef
 
