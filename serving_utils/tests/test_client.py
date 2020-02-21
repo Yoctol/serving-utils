@@ -8,7 +8,7 @@ from unittest.mock import patch
 import grpc
 import grpc._channel
 import grpclib
-from ..client import Client, RetryFailed
+from ..client import Client, RetryFailed, Connection
 
 import numpy as np
 from serving_utils import PredictInput
@@ -117,8 +117,10 @@ def setup_function(f):
           side_effect=create_a_fake_grpclib_channel).start()
     patch('serving_utils.client.grpc.secure_channel',
           side_effect=create_a_fake_grpc_channel).start()
-    patch('serving_utils.client.grpc.insecure_channel',
-          side_effect=create_a_fake_grpc_channel).start()
+    f.patch_insecure_channel = patch(
+        'serving_utils.client.grpc.insecure_channel',
+        side_effect=create_a_fake_grpc_channel,
+    ).start()
     patch('serving_utils.client.prediction_service_grpc.PredictionServiceStub',
           side_effect=create_a_fake_async_stub).start()
     patch('serving_utils.client.prediction_service_pb2_grpc.PredictionServiceStub',
@@ -255,6 +257,16 @@ def test_RetryFailed():
     assert 'xyz' in str(retry_error)
     assert "ABORTED" in str(retry_error)
     assert "UNKNOWN" in str(retry_error)
+
+
+def test_Connection_with_channel_options():
+    t = test_Connection_with_channel_options
+    channel_options = [('max_receive_body', 128 * 1000 * 1000)]
+    Connection('127.0.0.1', 8500, channel_options=channel_options)
+    t.patch_insecure_channel.assert_called_once_with(
+        '127.0.0.1:8500',
+        options=channel_options,
+    )
 
 
 @pytest.mark.asyncio
