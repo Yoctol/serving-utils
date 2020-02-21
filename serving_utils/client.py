@@ -57,10 +57,14 @@ class Connection:
         if channel_options is None:
             channel_options = {}
         if pem is None:
-            make_sync_channel = grpc.insecure_channel
+            make_sync_channel = partial(grpc.insecure_channel, options=channel_options)
         else:
             creds = grpc.ssl_channel_credentials(pem)
-            make_sync_channel = partial(grpc.secure_channel, credentials=creds)
+            make_sync_channel = partial(
+                grpc.secure_channel,
+                credentials=creds,
+                options=channel_options,
+            )
 
         if loop is None:
             loop = asyncio.get_event_loop()
@@ -120,12 +124,6 @@ class Client:
         if channel_options is None:
             channel_options = {}
         self._channel_options = channel_options
-        if pem is None:
-            make_sync_channel = grpc.insecure_channel
-        else:
-            creds = grpc.ssl_channel_credentials(pem)
-            make_sync_channel = partial(grpc.secure_channel, credentials=creds)
-        self._make_sync_channel = make_sync_channel
 
         if loop is None:
             loop = asyncio.get_event_loop()
