@@ -8,15 +8,14 @@ from unittest.mock import patch
 import grpc
 import grpc._channel
 import grpclib
-from ..client import Client, RetryFailed, Connection
-
 import numpy as np
-from serving_utils import PredictInput
+
+from ..client import Client, RetryFailed, Connection
 
 
 req_data = {
     'a': np.int16(2),
-    'b': np.int16(3)
+    'b': np.int16(3),
 }
 output_names = ['c']
 model_name = 'test_model'

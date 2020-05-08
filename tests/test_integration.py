@@ -82,7 +82,7 @@ async def test_client():
     # test client predict with simpler format
     req_data = {
         'a': np.int16(2),
-        'b': np.int16(3)
+        'b': np.int16(3),
     }
     output_names = ['c']
     expected_output = {'c': 8}  # c = a + 2 * b
