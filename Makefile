@@ -21,8 +21,7 @@ testall:
 	python train_for_test.py
 	docker-compose up -d
 	pytest .
-	docker-compose stop
-	docker-compose rm -f
+	docker-compose down
 
 .PHONY: all
 all: install-dev lint testall
