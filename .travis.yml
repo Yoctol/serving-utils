@@ -2,11 +2,13 @@ language: python
 cache: pip
 python:
   - '3.6'
+  - '3.7'
+  - '3.8-dev'
 services:
   - docker
 matrix:
   allow_failures:
-    - python: nightly
+    - python: '3.8-dev'
 before_install:
   - sudo apt-get update
   - sudo apt-get install pandoc -y
