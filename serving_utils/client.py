@@ -10,7 +10,7 @@ import grpc
 from grpclib.client import Channel
 from grpclib.exceptions import GRPCError
 from grpclib.const import Status
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from .round_robin_map import RoundRobinMap
 
@@ -186,7 +186,7 @@ class Client:
         results = {}
         for key in response.outputs:
             tensor_proto = response.outputs[key]
-            nd_array = tf.contrib.util.make_ndarray(tensor_proto)
+            nd_array = tf.make_ndarray(tensor_proto)
             results[key] = nd_array
         return results
 

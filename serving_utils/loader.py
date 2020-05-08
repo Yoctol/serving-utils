@@ -2,7 +2,7 @@ import os
 import pathlib
 from typing import List, Mapping
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.python.saved_model.loader_impl import SavedModelLoader
 
 
