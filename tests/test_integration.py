@@ -16,6 +16,9 @@ async def test_client():
         8502,
         8503,
         8504,
+        8505,
+        8506,
+        8507,
     ]
 
     while True:

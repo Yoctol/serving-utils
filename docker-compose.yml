@@ -1,7 +1,8 @@
 version: '3'
 services:
-  official_serving_1_6_1:
-    image: tensorflow/serving:1.6.1
+
+  official_serving_1_9_0:
+    image: tensorflow/serving:1.9.0
     ports:
       - "8501:8500"
     environment:
@@ -9,8 +10,8 @@ services:
     volumes:
       - ./.fake-models/test_model:/models/test_model
 
-  official_serving_1_7_1:
-    image: tensorflow/serving:1.7.1
+  official_serving_1_10_0:
+    image: tensorflow/serving:1.10.0
     ports:
       - "8502:8500"
     environment:
@@ -18,8 +19,8 @@ services:
     volumes:
       - ./.fake-models/test_model:/models/test_model
 
-  official_serving_1_8_0:
-    image: tensorflow/serving:1.8.0
+  official_serving_1_11_1:
+    image: tensorflow/serving:1.11.1
     ports:
       - "8503:8500"
     environment:
@@ -27,10 +28,37 @@ services:
     volumes:
       - ./.fake-models/test_model:/models/test_model
 
-  official_serving_1_9_0:
-    image: tensorflow/serving:1.9.0
+  official_serving_1_12_3:
+    image: tensorflow/serving:1.12.3
     ports:
       - "8504:8500"
+    environment:
+      - MODEL_NAME=test_model
+    volumes:
+      - ./.fake-models/test_model:/models/test_model
+
+  official_serving_1_13_1:
+    image: tensorflow/serving:1.13.1
+    ports:
+      - "8505:8500"
+    environment:
+      - MODEL_NAME=test_model
+    volumes:
+      - ./.fake-models/test_model:/models/test_model
+
+  official_serving_1_14_0:
+    image: tensorflow/serving:1.14.0
+    ports:
+      - "8506:8500"
+    environment:
+      - MODEL_NAME=test_model
+    volumes:
+      - ./.fake-models/test_model:/models/test_model
+
+  official_serving_1_15_0:
+    image: tensorflow/serving:1.15.0
+    ports:
+      - "8507:8500"
     environment:
       - MODEL_NAME=test_model
     volumes:
