@@ -61,11 +61,10 @@ loader.load(new_sess)  # load the saved model into new session
 
 2. Client
 ```python
-from serving_utils import Client, PredictInput
-
+from serving_utils import Client
 client = Client(host="localhost", port=8500, n_trys=3)
 client.predict(
-    [PredictInput(name='input', value=np.ones(1, 10))],
+    {'input': np.ones(1, 10)},
     output_names=['output'],
     model_signature_name='predict',
 )
