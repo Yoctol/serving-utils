@@ -10,7 +10,10 @@ import grpc
 from grpclib.client import Channel
 from grpclib.exceptions import GRPCError
 from grpclib.const import Status
-import tensorflow.compat.v1 as tf
+try:
+    import tensorflow.compat.v1 as tf
+except ImportError:
+    import tensorflow as tf
 
 from .round_robin_map import RoundRobinMap
 

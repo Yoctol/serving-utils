@@ -1,6 +1,9 @@
 from typing import Dict
 import pathlib
-import tensorflow.compat.v1 as tf
+try:
+    import tensorflow.compat.v1 as tf
+except ImportError:
+    import tensorflow as tf
 
 from .freeze_graph import freeze_graph, create_session_from_graphdef
 

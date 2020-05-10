@@ -2,7 +2,10 @@ import os
 import pathlib
 from typing import List, Mapping
 
-import tensorflow.compat.v1 as tf
+try:
+    import tensorflow.compat.v1 as tf
+except ImportError:
+    import tensorflow as tf
 from tensorflow.python.saved_model.loader_impl import SavedModelLoader
 
 
